@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import java.util.List;
 public class DataSeeder {
 
     private final KullaniciRepository kullaniciRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Bean
     CommandLineRunner initDatabase() {
@@ -69,6 +71,7 @@ public class DataSeeder {
             log.info("   - Marketing: 2 users");
             log.info("   - Sales: 2 users");
             log.info("   - Inactive: 1 user");
+            log.info("🔐 Default password for all users: 'password123'");
             log.info("🎯 Ready for testing! Visit http://localhost:8080/swagger-ui/index.html");
         };
     }
@@ -79,6 +82,7 @@ public class DataSeeder {
         kullanici.setSoyad(soyad);
         kullanici.setEmail(email);
         kullanici.setDepartman(departman);
+        kullanici.setPassword(passwordEncoder.encode("password123")); // Default password for all seed users
         kullanici.setKayitTarihi(LocalDateTime.now());
         kullanici.setAktif(true);
         return kullanici;

@@ -36,4 +36,9 @@ public class KullaniciRequestDTO {
     @Schema(description = "User's department", example = "IT", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Department is required")
     private String departman;
+
+    @Schema(description = "User's password", example = "SecurePassword123", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
+    private String password;
 }

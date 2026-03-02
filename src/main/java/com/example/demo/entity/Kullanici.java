@@ -50,6 +50,10 @@ public class Kullanici {
     @Schema(description = "User's department", example = "IT", requiredMode = Schema.RequiredMode.REQUIRED)
     private String departman;
 
+    @Column(name = "password", nullable = false)
+    @Schema(description = "User's password (hashed)", example = "$2a$10$...", accessMode = Schema.AccessMode.WRITE_ONLY)
+    private String password;
+
     @Column(name = "kayit_tarihi", nullable = false, updatable = false)
     @Schema(description = "Registration date (auto-generated)", example = "2026-03-02T10:30:00", accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime kayitTarihi;

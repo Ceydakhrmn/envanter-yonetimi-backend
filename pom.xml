@@ -69,6 +69,12 @@
 			<version>2.8.0</version>
 		</dependency>
 
+		<!-- Spring Security (BCrypt için, authentication disabled) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
 		<!-- Test (JUnit 5, Mockito, MockMvc) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

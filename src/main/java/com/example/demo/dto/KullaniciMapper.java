@@ -1,6 +1,8 @@
 package com.example.demo.dto;
 
 import com.example.demo.entity.Kullanici;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -12,7 +14,10 @@ import java.util.stream.Collectors;
  * Handles bidirectional mapping between domain models and data transfer objects
  */
 @Component
+@RequiredArgsConstructor
 public class KullaniciMapper {
+
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Convert entity to response DTO
@@ -58,6 +63,7 @@ public class KullaniciMapper {
         entity.setSoyad(dto.getSoyad());
         entity.setEmail(dto.getEmail());
         entity.setDepartman(dto.getDepartman());
+        entity.setPassword(passwordEncoder.encode(dto.getPassword())); // Hash password before saving
         entity.setKayitTarihi(LocalDateTime.now());
         entity.setAktif(true);
         return entity;
@@ -75,6 +81,12 @@ public class KullaniciMapper {
         entity.setSoyad(dto.getSoyad());
         entity.setEmail(dto.getEmail());
         entity.setDepartman(dto.getDepartman());
+        
+        // Hash password if provided and not already hashed
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            entity.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+        
         // Do not update: id, kayitTarihi, aktif (these are managed by system)
     }
 }

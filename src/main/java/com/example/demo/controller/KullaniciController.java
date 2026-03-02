@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.dto.KullaniciMapper;
 import com.example.demo.dto.KullaniciRequestDTO;
 import com.example.demo.dto.KullaniciResponseDTO;
+import com.example.demo.dto.LoginRequestDTO;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.service.KullaniciService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -147,6 +148,26 @@ public class KullaniciController {
         log.info("API: Listing by department: {}", departman);
         List<Kullanici> entities = service.departmanaGoreListele(departman);
         return ResponseEntity.ok(mapper.toResponseDTOList(entities));
+    }
+
+    // ==================== Authentication ====================
+
+    @Operation(summary = "User login", description = "Validates user credentials (email and password)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Login successful"),
+        @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    })
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
+        log.info("API: Login attempt for email: {}", loginRequest.getEmail());
+        boolean success = service.login(loginRequest.getEmail(), loginRequest.getPassword());
+        if (success) {
+            log.info("Login successful for: {}", loginRequest.getEmail());
+            return ResponseEntity.ok("Login successful! Welcome.");
+        } else {
+            log.warn("Login failed for: {}", loginRequest.getEmail());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Invalid email or password.");
+        }
     }
 
     @Operation(summary = "Permanently delete user", description = "Completely removes user from database (irreversible!)")

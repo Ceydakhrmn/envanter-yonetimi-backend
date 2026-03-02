@@ -5,6 +5,7 @@ import com.example.demo.entity.Kullanici;
 import com.example.demo.repository.KullaniciRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.util.List;
 public class KullaniciService implements BaseController.BaseService<Kullanici, Long> {
 
     private final KullaniciRepository kullaniciRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // ==================== BaseService Interface Implementation ====================
     
@@ -157,5 +159,37 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     public List<Kullanici> aktifKullanicilar() {
         log.info("Listing active users");
         return kullaniciRepository.findByAktifTrue();
+    }
+
+    /**
+     * Login - Verify email and password
+     */
+    public boolean login(String email, String password) {
+        log.info("Login attempt: {}", email);
+        
+        // Find user by email
+        var kullaniciOpt = kullaniciRepository.findByEmail(email);
+        if (kullaniciOpt.isEmpty()) {
+            log.warn("Login failed: User not found - {}", email);
+            return false;
+        }
+        
+        Kullanici kullanici = kullaniciOpt.get();
+        
+        // Check if user is active
+        if (!kullanici.getAktif()) {
+            log.warn("Login failed: User is inactive - {}", email);
+            return false;
+        }
+        
+        // Verify password
+        boolean passwordMatches = passwordEncoder.matches(password, kullanici.getPassword());
+        if (passwordMatches) {
+            log.info("Login successful: {}", email);
+        } else {
+            log.warn("Login failed: Invalid password - {}", email);
+        }
+        
+        return passwordMatches;
     }
 }
