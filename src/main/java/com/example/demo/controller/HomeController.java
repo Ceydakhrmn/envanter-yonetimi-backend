@@ -18,7 +18,8 @@ public class HomeController {
         response.put("application", "Corporate Inventory and User Management System");
         response.put("version", "1.0.0");
         response.put("status", "Running ✅");
-        response.put("api_base_url", "/api/kullanicilar");
+        response.put("swagger_ui", "/swagger-ui/index.html");
+        response.put("api_base_url", "/api");
         
         Map<String, String> endpoints = new HashMap<>();
         endpoints.put("GET /api/kullanicilar", "List all users");
@@ -29,6 +30,7 @@ public class HomeController {
         endpoints.put("POST /api/kullanicilar", "Create new user");
         endpoints.put("PUT /api/kullanicilar/{id}", "Update user");
         endpoints.put("DELETE /api/kullanicilar/{id}", "Delete user (soft)");
+        endpoints.put("DELETE /api/kullanicilar/{id}/permanent", "Delete user (permanent)");
         endpoints.put("GET /api/kullanicilar/health", "Health check");
         
         response.put("endpoints", endpoints);

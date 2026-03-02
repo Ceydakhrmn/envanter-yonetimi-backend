@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.controller.BaseController;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.repository.KullaniciRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,41 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor  // Lombok: Creates constructor for final fields
 @Slf4j  // Lombok: Automatically creates Logger (you can use log.info(...))
-public class KullaniciService {
+public class KullaniciService implements BaseController.BaseService<Kullanici, Long> {
 
     private final KullaniciRepository kullaniciRepository;
+
+    // ==================== BaseService Interface Implementation ====================
+    
+    @Override
+    public List<Kullanici> findAll() {
+        return tumKullanicilar();
+    }
+
+    @Override
+    public Kullanici findById(Long id) {
+        return kullaniciBul(id);
+    }
+
+    @Override
+    @Transactional
+    public Kullanici create(Kullanici entity) {
+        return kullaniciOlustur(entity);
+    }
+
+    @Override
+    @Transactional
+    public Kullanici update(Long id, Kullanici entity) {
+        return kullaniciGuncelle(id, entity);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        kullaniciSil(id);
+    }
+
+    // ==================== Original Methods (kept for backward compatibility) ====================
 
     /**
      * Create new user
