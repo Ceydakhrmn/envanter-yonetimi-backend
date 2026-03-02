@@ -19,43 +19,43 @@ import java.time.LocalDateTime;
 @Data  // Lombok: getter, setter, toString, equals, hashCode otomatik
 @NoArgsConstructor  // Lombok: Parametresiz constructor
 @AllArgsConstructor  // Lombok: Tüm parametrelerle constructor
-@Schema(description = "Kullanıcı entity modeli")
+@Schema(description = "User entity model")
 public class Kullanici {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "Kullanıcı ID (otomatik oluşturulur)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "User ID (auto-generated)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
-    @NotBlank(message = "Ad boş olamaz")
-    @Size(min = 2, max = 50, message = "Ad 2-50 karakter arası olmalı")
+    @NotBlank(message = "First name cannot be empty")
+    @Size(min = 2, max = 50, message = "First name must be between 2-50 characters")
     @Column(nullable = false, length = 50)
-    @Schema(description = "Kullanıcının adı", example = "Ahmet", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "User's first name", example = "Ahmet", requiredMode = Schema.RequiredMode.REQUIRED)
     private String ad;
 
-    @NotBlank(message = "Soyad boş olamaz")
-    @Size(min = 2, max = 50, message = "Soyad 2-50 karakter arası olmalı")
+    @NotBlank(message = "Last name cannot be empty")
+    @Size(min = 2, max = 50, message = "Last name must be between 2-50 characters")
     @Column(nullable = false, length = 50)
-    @Schema(description = "Kullanıcının soyadı", example = "Yılmaz", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "User's last name", example = "Yılmaz", requiredMode = Schema.RequiredMode.REQUIRED)
     private String soyad;
 
-    @NotBlank(message = "Email boş olamaz")
-    @Email(message = "Geçerli bir email adresi giriniz")
+    @NotBlank(message = "Email cannot be empty")
+    @Email(message = "Please enter a valid email address")
     @Column(nullable = false, unique = true, length = 100)
-    @Schema(description = "Kullanıcının email adresi (unique)", example = "ahmet@efsora.com", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "User's email address (unique)", example = "ahmet@efsora.com", requiredMode = Schema.RequiredMode.REQUIRED)
     private String email;
 
-    @NotBlank(message = "Departman boş olamaz")
+    @NotBlank(message = "Department cannot be empty")
     @Column(nullable = false, length = 50)
-    @Schema(description = "Kullanıcının departmanı", example = "IT", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "User's department", example = "IT", requiredMode = Schema.RequiredMode.REQUIRED)
     private String departman;
 
     @Column(name = "kayit_tarihi", nullable = false, updatable = false)
-    @Schema(description = "Kayıt tarihi (otomatik oluşturulur)", example = "2026-03-02T10:30:00", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Registration date (auto-generated)", example = "2026-03-02T10:30:00", accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime kayitTarihi;
 
     @Column(name = "aktif", nullable = false)
-    @Schema(description = "Kullanıcı aktif mi? (false = silinmiş)", example = "true", defaultValue = "true")
+    @Schema(description = "Is user active? (false = deleted)", example = "true", defaultValue = "true")
     private Boolean aktif;
 
     @PrePersist  // Kayıt edilmeden önce çalışır

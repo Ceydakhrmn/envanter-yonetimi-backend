@@ -15,31 +15,31 @@ public class HomeController {
     @GetMapping("/")
     public Map<String, Object> home() {
         Map<String, Object> response = new HashMap<>();
-        response.put("uygulama", "Kurumsal Envanter ve Kullanıcı Yönetim Sistemi");
-        response.put("versiyon", "1.0.0");
-        response.put("durum", "Çalışıyor ✅");
+        response.put("application", "Corporate Inventory and User Management System");
+        response.put("version", "1.0.0");
+        response.put("status", "Running ✅");
         response.put("api_base_url", "/api/kullanicilar");
         
         Map<String, String> endpoints = new HashMap<>();
-        endpoints.put("GET /api/kullanicilar", "Tüm kullanıcılar");
-        endpoints.put("GET /api/kullanicilar/aktif", "Aktif kullanıcılar");
-        endpoints.put("GET /api/kullanicilar/{id}", "ID ile kullanıcı");
-        endpoints.put("GET /api/kullanicilar/email/{email}", "Email ile kullanıcı");
-        endpoints.put("GET /api/kullanicilar/departman/{dept}", "Departmana göre");
-        endpoints.put("POST /api/kullanicilar", "Yeni kullanıcı oluştur");
-        endpoints.put("PUT /api/kullanicilar/{id}", "Kullanıcı güncelle");
-        endpoints.put("DELETE /api/kullanicilar/{id}", "Kullanıcı sil (soft)");
+        endpoints.put("GET /api/kullanicilar", "List all users");
+        endpoints.put("GET /api/kullanicilar/aktif", "List active users");
+        endpoints.put("GET /api/kullanicilar/{id}", "Get user by ID");
+        endpoints.put("GET /api/kullanicilar/email/{email}", "Get user by email");
+        endpoints.put("GET /api/kullanicilar/departman/{dept}", "List by department");
+        endpoints.put("POST /api/kullanicilar", "Create new user");
+        endpoints.put("PUT /api/kullanicilar/{id}", "Update user");
+        endpoints.put("DELETE /api/kullanicilar/{id}", "Delete user (soft)");
         endpoints.put("GET /api/kullanicilar/health", "Health check");
         
         response.put("endpoints", endpoints);
         
-        Map<String, Object> ornekKullanici = new HashMap<>();
-        ornekKullanici.put("ad", "Ahmet");
-        ornekKullanici.put("soyad", "Yılmaz");
-        ornekKullanici.put("email", "ahmet@efsora.com");
-        ornekKullanici.put("departman", "IT");
+        Map<String, Object> sampleUser = new HashMap<>();
+        sampleUser.put("ad", "Ahmet");
+        sampleUser.put("soyad", "Yılmaz");
+        sampleUser.put("email", "ahmet@efsora.com");
+        sampleUser.put("departman", "IT");
         
-        response.put("ornek_post_body", ornekKullanici);
+        response.put("sample_post_body", sampleUser);
         
         return response;
     }

@@ -8,6 +8,6 @@ public class MerhabaController {
 
     @GetMapping("/selam")
     public String selamVer() {
-        return "Selam Ceyda! Efsora'daki ilk Backend servisin hazır.";
+        return "Hello Ceyda! Your first Backend service at Efsora is ready.";
     }
 }

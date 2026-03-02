@@ -13,14 +13,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global Exception Handler - Tüm hataları yakalar ve düzgün response döner
+ * Global Exception Handler - Catches all errors and returns proper responses
  */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
     /**
-     * Validation hataları için (Email formatı, boş alan vs.)
+     * For validation errors (Email format, empty fields, etc.)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(
@@ -37,14 +37,14 @@ public class GlobalExceptionHandler {
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("errors", errors);
-        response.put("message", "Doğrulama hatası");
+        response.put("message", "Validation error");
 
-        log.error("Validation hatası: {}", errors);
+        log.error("Validation error: {}", errors);
         return ResponseEntity.badRequest().body(response);
     }
 
     /**
-     * Genel runtime hataları için (Kullanıcı bulunamadı, email zaten var vs.)
+     * For general runtime errors (User not found, email already exists, etc.)
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
@@ -53,22 +53,22 @@ public class GlobalExceptionHandler {
         response.put("status", HttpStatus.NOT_FOUND.value());
         response.put("message", ex.getMessage());
 
-        log.error("Runtime hatası: {}", ex.getMessage());
+        log.error("Runtime error: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     /**
-     * Beklenmeyen tüm hatalar için
+     * For all unexpected errors
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex) {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        response.put("message", "Sunucu hatası oluştu");
+        response.put("message", "Server error occurred");
         response.put("error", ex.getMessage());
 
-        log.error("Beklenmeyen hata: ", ex);
+        log.error("Unexpected error: ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

@@ -20,15 +20,15 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Kurumsal Envanter ve Kullanıcı Yönetim Sistemi API")
+                        .title("Corporate Inventory and User Management System API")
                         .version("1.0.0")
                         .description("""
-                                Bu API kurumsal kullanıcı yönetimi için CRUD işlemlerini sağlar.
+                                This API provides CRUD operations for corporate user management.
                                 
-                                **Özellikler:**
-                                - Kullanıcı oluşturma, güncelleme, silme
-                                - Email ve departmana göre arama
-                                - Soft delete (kullanıcı pasifleştirme)
+                                **Features:**
+                                - Create, update, delete users
+                                - Search by email and department
+                                - Soft delete (user deactivation)
                                 - Input validation
                                 """)
                         .contact(new Contact()

@@ -10,71 +10,71 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Kullanıcı Service - İş mantığı burada
- * Repository ile Controller arasındaki köprü
+ * User Service - Business logic is here
+ * Bridge between Repository and Controller
  */
 @Service
-@RequiredArgsConstructor  // Lombok: final field'lar için constructor oluşturur
-@Slf4j  // Lombok: Logger otomatik oluşturur (log.info(...) kullanabilirsin)
+@RequiredArgsConstructor  // Lombok: Creates constructor for final fields
+@Slf4j  // Lombok: Automatically creates Logger (you can use log.info(...))
 public class KullaniciService {
 
     private final KullaniciRepository kullaniciRepository;
 
     /**
-     * Yeni kullanıcı oluştur
+     * Create new user
      */
     @Transactional
     public Kullanici kullaniciOlustur(Kullanici kullanici) {
-        log.info("Yeni kullanıcı oluşturuluyor: {}", kullanici.getEmail());
+        log.info("Creating new user: {}", kullanici.getEmail());
         
-        // Email kontrolü
+        // Email check
         if (kullaniciRepository.existsByEmail(kullanici.getEmail())) {
-            throw new RuntimeException("Bu email adresi zaten kayıtlı: " + kullanici.getEmail());
+            throw new RuntimeException("This email address is already registered: " + kullanici.getEmail());
         }
         
         return kullaniciRepository.save(kullanici);
     }
 
     /**
-     * Tüm kullanıcıları listele
+     * List all users
      */
     public List<Kullanici> tumKullanicilar() {
-        log.info("Tüm kullanıcılar listeleniyor");
+        log.info("Listing all users");
         return kullaniciRepository.findAll();
     }
 
     /**
-     * ID ile kullanıcı bul
+     * Find user by ID
      */
     public Kullanici kullaniciBul(Long id) {
-        log.info("Kullanıcı aranıyor: ID={}", id);
+        log.info("Searching for user: ID={}", id);
         return kullaniciRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: ID=" + id));
+                .orElseThrow(() -> new RuntimeException("User not found: ID=" + id));
     }
 
     /**
-     * Email ile kullanıcı bul
+     * Find user by email
      */
     public Kullanici emailIleKullaniciBul(String email) {
-        log.info("Kullanıcı aranıyor: Email={}", email);
+        log.info("Searching for user: Email={}", email);
         return kullaniciRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: Email=" + email));
+                .orElseThrow(() -> new RuntimeException("User not found: Email=" + email));
     }
 
     /**
-     * Departmana göre kullanıcıları listele
+     * List users by department
      */
     public List<Kullanici> departmanaGoreListele(String departman) {
-        log.info("Departmana göre listeleniyor: {}", departman);
+        log.info("Listing by department: {}", departman);
         return kullaniciRepository.findByDepartman(departman);
     }
 
     /**
-     * Kullanıcı güncelle
+     * Update user
      */
     @Transactional
     public Kullanici kullaniciGuncelle(Long id, Kullanici yeniKullanici) {
-        log.info("Kullanıcı güncelleniyor: ID={}", id);
+        log.info("Updating user: ID={}", id);
         
         Kullanici mevcutKullanici = kullaniciBul(id);
         
@@ -82,15 +82,15 @@ public class KullaniciService {
         mevcutKullanici.setSoyad(yeniKullanici.getSoyad());
         mevcutKullanici.setDepartman(yeniKullanici.getDepartman());
         
-        // Aktif durumunu güncelle (eğer gönderildiyse)
+        // Update active status (if provided)
         if (yeniKullanici.getAktif() != null) {
             mevcutKullanici.setAktif(yeniKullanici.getAktif());
         }
         
-        // Email değişiyorsa, yeni email kontrolü
+        // If email is changing, check for duplicate
         if (!mevcutKullanici.getEmail().equals(yeniKullanici.getEmail())) {
             if (kullaniciRepository.existsByEmail(yeniKullanici.getEmail())) {
-                throw new RuntimeException("Bu email adresi zaten kullanılıyor: " + yeniKullanici.getEmail());
+                throw new RuntimeException("This email address is already in use: " + yeniKullanici.getEmail());
             }
             mevcutKullanici.setEmail(yeniKullanici.getEmail());
         }
@@ -99,30 +99,30 @@ public class KullaniciService {
     }
 
     /**
-     * Kullanıcıyı sil (soft delete - aktif=false)
+     * Delete user (soft delete - active=false)
      */
     @Transactional
     public void kullaniciSil(Long id) {
-        log.info("Kullanıcı siliniyor (deaktif): ID={}", id);
+        log.info("Deleting user (deactivating): ID={}", id);
         Kullanici kullanici = kullaniciBul(id);
         kullanici.setAktif(false);
         kullaniciRepository.save(kullanici);
     }
 
     /**
-     * Kullanıcıyı kalıcı sil (hard delete - veritabanından tamamen sil)
+     * Permanently delete user (hard delete - completely remove from database)
      */
     @Transactional
     public void kullaniciKaliciSil(Long id) {
-        log.warn("Kullanıcı kalıcı olarak siliniyor: ID={}", id);
+        log.warn("Permanently deleting user: ID={}", id);
         kullaniciRepository.deleteById(id);
     }
 
     /**
-     * Aktif kullanıcıları listele
+     * List active users
      */
     public List<Kullanici> aktifKullanicilar() {
-        log.info("Aktif kullanıcılar listeleniyor");
+        log.info("Listing active users");
         return kullaniciRepository.findByAktifTrue();
     }
 }
