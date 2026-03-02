@@ -1,5 +1,8 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.KullaniciMapper;
+import com.example.demo.dto.KullaniciRequestDTO;
+import com.example.demo.dto.KullaniciResponseDTO;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.service.KullaniciService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,96 +20,110 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * User Controller - REST API endpoints
- * Extends BaseController for standard CRUD operations
- * Contains only user-specific endpoints (email search, department filter, etc.)
+ * User Controller - REST API endpoints with DTO pattern
+ * Uses DTOs (Data Transfer Objects) instead of directly exposing entities
+ * This provides better security and API contract management
  */
 @RestController
 @RequestMapping("/api/kullanicilar")
+@RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User Management", description = "API endpoints for user CRUD operations")
-public class KullaniciController extends BaseController<Kullanici, Long, KullaniciService> {
+public class KullaniciController {
 
-    public KullaniciController(KullaniciService service) {
-        super(service, "User");
-    }
+    private final KullaniciService service;
+    private final KullaniciMapper mapper;
 
-    // ==================== Override BaseController Methods with User-Specific Descriptions ====================
+    // ==================== CRUD Operations ====================
 
-    @Override
     @Operation(summary = "List all users", description = "Returns all users in the system")
     @ApiResponse(responseCode = "200", description = "Success")
-    public ResponseEntity<List<Kullanici>> findAll() {
-        return super.findAll();
+    @GetMapping
+    public ResponseEntity<List<KullaniciResponseDTO>> findAll() {
+        log.info("API: Listing all users");
+        List<Kullanici> entities = service.tumKullanicilar();
+        return ResponseEntity.ok(mapper.toResponseDTOList(entities));
     }
 
-    @Override
     @Operation(summary = "Find user by ID", description = "Returns a specific user by their ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User found"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<Kullanici> findById(
+    @GetMapping("/{id}")
+    public ResponseEntity<KullaniciResponseDTO> findById(
             @Parameter(description = "User ID", example = "1") @PathVariable Long id) {
-        return super.findById(id);
+        log.info("API: Searching for user with ID={}", id);
+        Kullanici entity = service.kullaniciBul(id);
+        return ResponseEntity.ok(mapper.toResponseDTO(entity));
     }
 
-    @Override
     @Operation(summary = "Create new user", description = "Creates a new user in the system")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "User created successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<Kullanici> create(
+    @PostMapping
+    public ResponseEntity<KullaniciResponseDTO> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                 description = "New user data",
                 required = true
-            ) @Valid @RequestBody Kullanici entity) {
-        return super.create(entity);
+            ) @Valid @RequestBody KullaniciRequestDTO requestDTO) {
+        log.info("API: Creating new user");
+        Kullanici entity = mapper.toEntity(requestDTO);
+        Kullanici created = service.kullaniciOlustur(entity);
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponseDTO(created));
     }
 
-    @Override
     @Operation(summary = "Update user", description = "Updates an existing user's information")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User updated successfully"),
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<Kullanici> update(
+    @PutMapping("/{id}")
+    public ResponseEntity<KullaniciResponseDTO> update(
             @Parameter(description = "User ID", example = "1") @PathVariable Long id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                 description = "Updated user data",
                 required = true
-            ) @Valid @RequestBody Kullanici entity) {
-        return super.update(id, entity);
+            ) @Valid @RequestBody KullaniciRequestDTO requestDTO) {
+        log.info("API: Updating user with ID={}", id);
+        Kullanici existingEntity = service.kullaniciBul(id);
+        mapper.updateEntityFromDTO(requestDTO, existingEntity);
+        Kullanici updated = service.kullaniciGuncelle(id, existingEntity);
+        return ResponseEntity.ok(mapper.toResponseDTO(updated));
     }
 
-    @Override
     @Operation(summary = "Delete user (soft delete)", description = "Marks user as inactive without removing from database")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "User deleted successfully"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @Parameter(description = "User ID", example = "1") @PathVariable Long id) {
-        return super.delete(id);
+        log.info("API: Deleting user with ID={}", id);
+        service.kullaniciSil(id);
+        return ResponseEntity.noContent().build();
     }
 
-    @Override
     @Operation(summary = "Health check", description = "Checks if the User Management API is running")
     @ApiResponse(responseCode = "200", description = "API is operational")
+    @GetMapping("/health")
     public ResponseEntity<String> health() {
-        return super.health();
+        return ResponseEntity.ok("User API is running! ✅");
     }
 
-    // ==================== User-Specific Endpoints (Not in BaseController) ====================
+    // ==================== User-Specific Endpoints ====================
 
     @Operation(summary = "List active users", description = "Lists only active (not deleted) users")
     @ApiResponse(responseCode = "200", description = "Success")
     @GetMapping("/aktif")
-    public ResponseEntity<List<Kullanici>> aktifKullanicilar() {
+    public ResponseEntity<List<KullaniciResponseDTO>> aktifKullanicilar() {
         log.info("API: Listing active users");
-        return ResponseEntity.ok(service.aktifKullanicilar());
+        List<Kullanici> entities = service.aktifKullanicilar();
+        return ResponseEntity.ok(mapper.toResponseDTOList(entities));
     }
 
     @Operation(summary = "Find user by email", description = "Searches for user by email address")
@@ -114,19 +132,21 @@ public class KullaniciController extends BaseController<Kullanici, Long, Kullani
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     @GetMapping("/email/{email}")
-    public ResponseEntity<Kullanici> emailIleKullaniciBul(
+    public ResponseEntity<KullaniciResponseDTO> emailIleKullaniciBul(
             @Parameter(description = "Email address", example = "ahmet@efsora.com") @PathVariable String email) {
         log.info("API: Searching for user by email: {}", email);
-        return ResponseEntity.ok(service.emailIleKullaniciBul(email));
+        Kullanici entity = service.emailIleKullaniciBul(email);
+        return ResponseEntity.ok(mapper.toResponseDTO(entity));
     }
 
     @Operation(summary = "List by department", description = "Lists users in a specific department")
     @ApiResponse(responseCode = "200", description = "Success")
     @GetMapping("/departman/{departman}")
-    public ResponseEntity<List<Kullanici>> departmanaGoreListele(
+    public ResponseEntity<List<KullaniciResponseDTO>> departmanaGoreListele(
             @Parameter(description = "Department name", example = "IT") @PathVariable String departman) {
         log.info("API: Listing by department: {}", departman);
-        return ResponseEntity.ok(service.departmanaGoreListele(departman));
+        List<Kullanici> entities = service.departmanaGoreListele(departman);
+        return ResponseEntity.ok(mapper.toResponseDTOList(entities));
     }
 
     @Operation(summary = "Permanently delete user", description = "Completely removes user from database (irreversible!)")
