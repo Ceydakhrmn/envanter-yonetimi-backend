@@ -46,11 +46,14 @@ public class Kullanici {
     @Column(name = "kayit_tarihi", nullable = false, updatable = false)
     private LocalDateTime kayitTarihi;
 
-    @Column(name = "aktif")
-    private Boolean aktif = true;
+    @Column(name = "aktif", nullable = false)
+    private Boolean aktif;
 
     @PrePersist  // Kayıt edilmeden önce çalışır
     protected void onCreate() {
         kayitTarihi = LocalDateTime.now();
+        if (aktif == null) {
+            aktif = true;  // Varsayılan olarak aktif
+        }
     }
 }

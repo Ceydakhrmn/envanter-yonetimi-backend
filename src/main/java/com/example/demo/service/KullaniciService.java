@@ -82,6 +82,11 @@ public class KullaniciService {
         mevcutKullanici.setSoyad(yeniKullanici.getSoyad());
         mevcutKullanici.setDepartman(yeniKullanici.getDepartman());
         
+        // Aktif durumunu güncelle (eğer gönderildiyse)
+        if (yeniKullanici.getAktif() != null) {
+            mevcutKullanici.setAktif(yeniKullanici.getAktif());
+        }
+        
         // Email değişiyorsa, yeni email kontrolü
         if (!mevcutKullanici.getEmail().equals(yeniKullanici.getEmail())) {
             if (kullaniciRepository.existsByEmail(yeniKullanici.getEmail())) {
