@@ -44,7 +44,7 @@ class KullaniciServiceTest {
         testKullanici.setLastName("Yılmaz");
         testKullanici.setEmail("ahmet@efsora.com");
         testKullanici.setDepartment("IT");
-        testKullanici.setAktif(true);
+        testKullanici.setActive(true);
     }
 
     @Test
@@ -150,7 +150,7 @@ class KullaniciServiceTest {
         guncellenenKullanici.setLastName("Kaya"); // Last name changed
         guncellenenKullanici.setEmail("ahmet@efsora.com");
         guncellenenKullanici.setDepartment("HR"); // Department changed
-        guncellenenKullanici.setAktif(true);
+        guncellenenKullanici.setActive(true);
 
         when(kullaniciRepository.findById(1L)).thenReturn(Optional.of(testKullanici));
         when(kullaniciRepository.save(any(Kullanici.class))).thenReturn(testKullanici);
@@ -173,23 +173,23 @@ class KullaniciServiceTest {
         kullaniciService.kullaniciSil(1L);
 
         // Then
-        assertThat(testKullanici.getAktif()).isFalse();
+        assertThat(testKullanici.getActive()).isFalse();
         verify(kullaniciRepository, times(1)).save(testKullanici);
     }
 
     @Test
     @DisplayName("Active users should be listed")
-    void aktifKullanicilar_basarili() {
+    void activeUsers_success() {
         // Given
-        List<Kullanici> aktifKullanicilar = Arrays.asList(testKullanici);
-        when(kullaniciRepository.findByAktifTrue()).thenReturn(aktifKullanicilar);
-
+        List<Kullanici> activeUsers = Arrays.asList(testKullanici);
+        when(kullaniciRepository.findByActiveTrue()).thenReturn(activeUsers);
+        
         // When
-        List<Kullanici> sonuc = kullaniciService.aktifKullanicilar();
-
+        List<Kullanici> result = kullaniciService.activeUsers();
+        
         // Then
-        assertThat(sonuc).hasSize(1);
-        assertThat(sonuc.get(0).getAktif()).isTrue();
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getActive()).isTrue();
     }
 
     @Test

@@ -8,23 +8,23 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Kullanıcı Repository - Veritabanı işlemlerini yönetir
- * JpaRepository sayesinde CRUD işlemleri otomatik gelir
+ * User Repository - Manages database operations
+ * CRUD operations are provided by JpaRepository
  */
 @Repository
 public interface KullaniciRepository extends JpaRepository<Kullanici, Long> {
 
-    // Spring Data JPA otomatik olarak bu metotları implement eder
-    
-    // Email ile kullanıcı bulma
+    // Spring Data JPA automatically implements these methods
+
+    // Find user by email
     Optional<Kullanici> findByEmail(String email);
-    
-    // Departmana göre kullanıcıları listeleme
+
+    // List users by department
     List<Kullanici> findByDepartment(String department);
-    
-    // Aktif kullanıcıları listeleme
-    List<Kullanici> findByAktifTrue();
-    
-    // Email varlık kontrolü
+
+    // List active users
+    List<Kullanici> findByActiveTrue();
+
+    // Email existence check
     boolean existsByEmail(String email);
 }

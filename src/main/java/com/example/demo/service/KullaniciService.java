@@ -115,8 +115,8 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
         mevcutKullanici.setLastName(yeniKullanici.getLastName());
         mevcutKullanici.setDepartment(yeniKullanici.getDepartment());
         // Update active status (if provided)
-        if (yeniKullanici.getAktif() != null) {
-            mevcutKullanici.setAktif(yeniKullanici.getAktif());
+        if (yeniKullanici.getActive() != null) {
+            mevcutKullanici.setActive(yeniKullanici.getActive());
         }
         // If email is changing, check for duplicate
         if (!mevcutKullanici.getEmail().equals(yeniKullanici.getEmail())) {
@@ -135,7 +135,7 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     public void kullaniciSil(Long id) {
         log.info("Deleting user (deactivating): ID={}", id);
         Kullanici kullanici = kullaniciBul(id);
-        kullanici.setAktif(false);
+        kullanici.setActive(false);
         kullaniciRepository.save(kullanici);
     }
 
@@ -151,9 +151,9 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     /**
      * List active users
      */
-    public List<Kullanici> aktifKullanicilar() {
+    public List<Kullanici> activeUsers() {
         log.info("Listing active users");
-        return kullaniciRepository.findByAktifTrue();
+        return kullaniciRepository.findByActiveTrue();
     }
 
     /**
@@ -167,7 +167,7 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
             return null;
         }
         Kullanici kullanici = kullaniciOpt.get();
-        if (!kullanici.getAktif()) {
+        if (!kullanici.getActive()) {
             log.warn("Login failed: User is inactive - {}", email);
             return null;
         }

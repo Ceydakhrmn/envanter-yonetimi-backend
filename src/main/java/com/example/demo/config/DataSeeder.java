@@ -58,7 +58,7 @@ public class DataSeeder {
 
             // Add one inactive user (soft deleted)
             Kullanici inactiveUser = createUser("Test", "Inactive", "test.inactive@efsora.com", "Testing");
-            inactiveUser.setAktif(false);
+            inactiveUser.setActive(false);
             sampleUsers.add(inactiveUser);
 
             kullaniciRepository.saveAll(sampleUsers);
@@ -83,8 +83,8 @@ public class DataSeeder {
         kullanici.setEmail(email);
         kullanici.setDepartment(department);
         kullanici.setPassword(passwordEncoder.encode("password123")); // Default password for all seed users
-        kullanici.setKayitTarihi(LocalDateTime.now());
-        kullanici.setAktif(true);
+        kullanici.setRegistrationDate(LocalDateTime.now());
+        kullanici.setActive(true);
         return kullanici;
     }
 }

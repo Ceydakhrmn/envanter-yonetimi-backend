@@ -121,10 +121,10 @@ public class KullaniciController {
 
     @Operation(summary = "List active users", description = "Lists only active (not deleted) users")
     @ApiResponse(responseCode = "200", description = "Success")
-    @GetMapping("/aktif")
-    public ResponseEntity<List<KullaniciResponseDTO>> aktifKullanicilar() {
+    @GetMapping("/active")
+    public ResponseEntity<List<KullaniciResponseDTO>> activeUsers() {
         log.info("API: Listing active users");
-        List<Kullanici> entities = service.aktifKullanicilar();
+        List<Kullanici> entities = service.activeUsers();
         return ResponseEntity.ok(mapper.toResponseDTOList(entities));
     }
 

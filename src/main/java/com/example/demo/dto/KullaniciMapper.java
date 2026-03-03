@@ -23,7 +23,9 @@ public class KullaniciMapper {
 		dto.setFirstName(entity.getFirstName());
 		dto.setLastName(entity.getLastName());
 		dto.setEmail(entity.getEmail());
-		// dto'da departman, kayitTarihi, aktif yoksa bu satırları kaldır
+		dto.setDepartment(entity.getDepartment());
+		dto.setRegistrationDate(entity.getRegistrationDate());
+		dto.setActive(entity.getActive());
 		return dto;
 	}
 
@@ -46,8 +48,8 @@ public class KullaniciMapper {
 		entity.setEmail(dto.getEmail());
 		entity.setDepartment(dto.getDepartment());
 		entity.setPassword(passwordEncoder.encode(dto.getPassword()));
-		entity.setKayitTarihi(LocalDateTime.now());
-		entity.setAktif(true);
+		entity.setRegistrationDate(LocalDateTime.now());
+		entity.setActive(true);
 		return entity;
 	}
 

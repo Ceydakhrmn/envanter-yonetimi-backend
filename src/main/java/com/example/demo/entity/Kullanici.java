@@ -24,9 +24,10 @@ public class Kullanici {
     @Column(name = "department")
     private String department;
 
-    @Column(name = "kayit_tarihi")
-    private LocalDateTime kayitTarihi;
 
-    @Column(name = "aktif")
-    private Boolean aktif = true;
+    @Column(name = "registration_date")
+    private LocalDateTime registrationDate;
+
+    @Column(name = "active")
+    private Boolean active = true;
 }

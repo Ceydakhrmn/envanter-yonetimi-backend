@@ -20,9 +20,9 @@ public class KullaniciResponseDTO {
     @Schema(example = "IT")
     private String department;
 
-    @Schema(example = "2024-05-01T12:00:00")
-    private java.time.LocalDateTime kayitTarihi;
+    @Schema(description = "User registration date", example = "2024-05-01T12:00:00")
+    private java.time.LocalDateTime registrationDate;
 
-    @Schema(example = "true")
-    private Boolean aktif;
+    @Schema(description = "Is user active?", example = "true")
+    private Boolean active;
 }
