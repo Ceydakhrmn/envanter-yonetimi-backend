@@ -158,15 +158,15 @@ public class KullaniciController {
         @ApiResponse(responseCode = "401", description = "Invalid credentials")
     })
     @PostMapping("/login")
-    public ResponseEntity<String> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
+    public ResponseEntity<KullaniciResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
         log.info("API: Login attempt for email: {}", loginRequest.getEmail());
-        boolean success = service.login(loginRequest.getEmail(), loginRequest.getPassword());
-        if (success) {
+        Kullanici kullanici = service.login(loginRequest.getEmail(), loginRequest.getPassword());
+        if (kullanici != null) {
             log.info("Login successful for: {}", loginRequest.getEmail());
-            return ResponseEntity.ok("Login successful! Welcome.");
+            return ResponseEntity.ok(mapper.toResponseDTO(kullanici));
         } else {
             log.warn("Login failed for: {}", loginRequest.getEmail());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Invalid email or password.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 

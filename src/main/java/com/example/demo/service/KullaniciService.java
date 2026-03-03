@@ -162,34 +162,27 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     }
 
     /**
-     * Login - Verify email and password
+     * Login - Verify email and password, returns Kullanici if successful, null otherwise
      */
-    public boolean login(String email, String password) {
+    public Kullanici login(String email, String password) {
         log.info("Login attempt: {}", email);
-        
-        // Find user by email
         var kullaniciOpt = kullaniciRepository.findByEmail(email);
         if (kullaniciOpt.isEmpty()) {
             log.warn("Login failed: User not found - {}", email);
-            return false;
+            return null;
         }
-        
         Kullanici kullanici = kullaniciOpt.get();
-        
-        // Check if user is active
         if (!kullanici.getAktif()) {
             log.warn("Login failed: User is inactive - {}", email);
-            return false;
+            return null;
         }
-        
-        // Verify password
         boolean passwordMatches = passwordEncoder.matches(password, kullanici.getPassword());
         if (passwordMatches) {
             log.info("Login successful: {}", email);
+            return kullanici;
         } else {
             log.warn("Login failed: Invalid password - {}", email);
+            return null;
         }
-        
-        return passwordMatches;
     }
 }
