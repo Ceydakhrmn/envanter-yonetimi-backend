@@ -76,12 +76,12 @@ public class DataSeeder {
         };
     }
 
-    private Kullanici createUser(String ad, String soyad, String email, String departman) {
+    private Kullanici createUser(String firstName, String lastName, String email, String department) {
         Kullanici kullanici = new Kullanici();
-        kullanici.setAd(ad);
-        kullanici.setSoyad(soyad);
+        kullanici.setFirstName(firstName);
+        kullanici.setLastName(lastName);
         kullanici.setEmail(email);
-        kullanici.setDepartman(departman);
+        kullanici.setDepartment(department);
         kullanici.setPassword(passwordEncoder.encode("password123")); // Default password for all seed users
         kullanici.setKayitTarihi(LocalDateTime.now());
         kullanici.setAktif(true);

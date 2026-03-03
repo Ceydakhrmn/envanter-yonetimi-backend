@@ -99,9 +99,9 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     /**
      * List users by department
      */
-    public List<Kullanici> departmanaGoreListele(String departman) {
-        log.info("Listing by department: {}", departman);
-        return kullaniciRepository.findByDepartman(departman);
+    public List<Kullanici> departmanaGoreListele(String department) {
+        log.info("Listing by department: {}", department);
+        return kullaniciRepository.findByDepartment(department);
     }
 
     /**
@@ -110,18 +110,14 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     @Transactional
     public Kullanici kullaniciGuncelle(Long id, Kullanici yeniKullanici) {
         log.info("Updating user: ID={}", id);
-        
         Kullanici mevcutKullanici = kullaniciBul(id);
-        
-        mevcutKullanici.setAd(yeniKullanici.getAd());
-        mevcutKullanici.setSoyad(yeniKullanici.getSoyad());
-        mevcutKullanici.setDepartman(yeniKullanici.getDepartman());
-        
+        mevcutKullanici.setFirstName(yeniKullanici.getFirstName());
+        mevcutKullanici.setLastName(yeniKullanici.getLastName());
+        mevcutKullanici.setDepartment(yeniKullanici.getDepartment());
         // Update active status (if provided)
         if (yeniKullanici.getAktif() != null) {
             mevcutKullanici.setAktif(yeniKullanici.getAktif());
         }
-        
         // If email is changing, check for duplicate
         if (!mevcutKullanici.getEmail().equals(yeniKullanici.getEmail())) {
             if (kullaniciRepository.existsByEmail(yeniKullanici.getEmail())) {
@@ -129,7 +125,6 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
             }
             mevcutKullanici.setEmail(yeniKullanici.getEmail());
         }
-        
         return kullaniciRepository.save(mevcutKullanici);
     }
 

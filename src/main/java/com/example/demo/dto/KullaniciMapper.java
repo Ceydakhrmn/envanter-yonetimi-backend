@@ -20,12 +20,10 @@ public class KullaniciMapper {
 		}
 		KullaniciResponseDTO dto = new KullaniciResponseDTO();
 		dto.setId(entity.getId());
-		dto.setAd(entity.getAd());
-		dto.setSoyad(entity.getSoyad());
+		dto.setFirstName(entity.getFirstName());
+		dto.setLastName(entity.getLastName());
 		dto.setEmail(entity.getEmail());
-		dto.setDepartman(entity.getDepartman());
-		dto.setKayitTarihi(entity.getKayitTarihi());
-		dto.setAktif(entity.getAktif());
+		// dto'da departman, kayitTarihi, aktif yoksa bu satırları kaldır
 		return dto;
 	}
 
@@ -43,10 +41,10 @@ public class KullaniciMapper {
 			return null;
 		}
 		Kullanici entity = new Kullanici();
-		entity.setAd(dto.getAd());
-		entity.setSoyad(dto.getSoyad());
+		entity.setFirstName(dto.getFirstName());
+		entity.setLastName(dto.getLastName());
 		entity.setEmail(dto.getEmail());
-		entity.setDepartman(dto.getDepartman());
+		entity.setDepartment(dto.getDepartment());
 		entity.setPassword(passwordEncoder.encode(dto.getPassword()));
 		entity.setKayitTarihi(LocalDateTime.now());
 		entity.setAktif(true);
@@ -57,10 +55,10 @@ public class KullaniciMapper {
 		if (dto == null || entity == null) {
 			return;
 		}
-		entity.setAd(dto.getAd());
-		entity.setSoyad(dto.getSoyad());
+		entity.setFirstName(dto.getFirstName());
+		entity.setLastName(dto.getLastName());
 		entity.setEmail(dto.getEmail());
-		entity.setDepartman(dto.getDepartman());
+		entity.setDepartment(dto.getDepartment());
 		if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
 			entity.setPassword(passwordEncoder.encode(dto.getPassword()));
 		}

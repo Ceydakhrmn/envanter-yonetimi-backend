@@ -26,6 +26,7 @@ import java.util.List;
  * This provides better security and API contract management
  */
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/api/kullanicilar")
 @RequiredArgsConstructor
 @Slf4j

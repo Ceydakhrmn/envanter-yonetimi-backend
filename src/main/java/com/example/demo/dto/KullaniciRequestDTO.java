@@ -21,24 +21,24 @@ public class KullaniciRequestDTO {
     @Schema(description = "User's first name", example = "Ahmet", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "First name is required")
     @Size(min = 2, max = 50, message = "First name must be between 2 and 50 characters")
-    private String ad;
+    private String firstName; // Changed to camelCase
 
     @Schema(description = "User's last name", example = "Yılmaz", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Last name is required")
     @Size(min = 2, max = 50, message = "Last name must be between 2 and 50 characters")
-    private String soyad;
+    private String lastName; // Changed to camelCase
 
     @Schema(description = "User's email address (must be unique)", example = "ahmet@efsora.com", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
-    private String email;
+    private String email; // Changed to camelCase
 
     @Schema(description = "User's department", example = "IT", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Department is required")
-    private String departman;
+    private String department;
 
     @Schema(description = "User's password", example = "SecurePassword123", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
-	private String password;
+    private String password; // Changed to camelCase
 }

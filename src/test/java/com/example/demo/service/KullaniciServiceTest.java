@@ -40,10 +40,10 @@ class KullaniciServiceTest {
     void setUp() {
         testKullanici = new Kullanici();
         testKullanici.setId(1L);
-        testKullanici.setAd("Ahmet");
-        testKullanici.setSoyad("Yılmaz");
+        testKullanici.setFirstName("Ahmet");
+        testKullanici.setLastName("Yılmaz");
         testKullanici.setEmail("ahmet@efsora.com");
-        testKullanici.setDepartman("IT");
+        testKullanici.setDepartment("IT");
         testKullanici.setAktif(true);
     }
 
@@ -60,7 +60,7 @@ class KullaniciServiceTest {
         // Then - Verification
         assertThat(sonuc).isNotNull();
         assertThat(sonuc.getEmail()).isEqualTo("ahmet@efsora.com");
-        assertThat(sonuc.getAd()).isEqualTo("Ahmet");
+        assertThat(sonuc.getFirstName()).isEqualTo("Ahmet");
         
         verify(kullaniciRepository, times(1)).existsByEmail("ahmet@efsora.com");
         verify(kullaniciRepository, times(1)).save(testKullanici);
@@ -146,10 +146,10 @@ class KullaniciServiceTest {
     void kullaniciGuncelle_basarili() {
         // Given
         Kullanici guncellenenKullanici = new Kullanici();
-        guncellenenKullanici.setAd("Ahmet");
-        guncellenenKullanici.setSoyad("Kaya"); // Last name changed
+        guncellenenKullanici.setFirstName("Ahmet");
+        guncellenenKullanici.setLastName("Kaya"); // Last name changed
         guncellenenKullanici.setEmail("ahmet@efsora.com");
-        guncellenenKullanici.setDepartman("HR"); // Department changed
+        guncellenenKullanici.setDepartment("HR"); // Department changed
         guncellenenKullanici.setAktif(true);
 
         when(kullaniciRepository.findById(1L)).thenReturn(Optional.of(testKullanici));
@@ -197,13 +197,13 @@ class KullaniciServiceTest {
     void departmanaGoreListele_basarili() {
         // Given
         List<Kullanici> itKullanicilari = Arrays.asList(testKullanici);
-        when(kullaniciRepository.findByDepartman("IT")).thenReturn(itKullanicilari);
+        when(kullaniciRepository.findByDepartment("IT")).thenReturn(itKullanicilari);
 
         // When
         List<Kullanici> sonuc = kullaniciService.departmanaGoreListele("IT");
 
         // Then
         assertThat(sonuc).hasSize(1);
-        assertThat(sonuc.get(0).getDepartman()).isEqualTo("IT");
+        assertThat(sonuc.get(0).getDepartment()).isEqualTo("IT");
     }
 }

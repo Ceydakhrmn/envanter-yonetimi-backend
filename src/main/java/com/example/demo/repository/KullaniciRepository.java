@@ -20,7 +20,7 @@ public interface KullaniciRepository extends JpaRepository<Kullanici, Long> {
     Optional<Kullanici> findByEmail(String email);
     
     // Departmana göre kullanıcıları listeleme
-    List<Kullanici> findByDepartman(String departman);
+    List<Kullanici> findByDepartment(String department);
     
     // Aktif kullanıcıları listeleme
     List<Kullanici> findByAktifTrue();
