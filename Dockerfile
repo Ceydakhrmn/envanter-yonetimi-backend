@@ -13,5 +13,5 @@ RUN ./mvnw dependency:go-offline
 COPY . .
 RUN ./mvnw clean package -DskipTests
 
-# Uygulamayı başlat
-CMD ["java", "-jar", "target/*.jar"]
+# Uygulamayı başlat (sh -c ile glob desteği)
+CMD ["sh", "-c", "java -jar target/*.jar"]
