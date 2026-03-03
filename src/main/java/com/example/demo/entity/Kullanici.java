@@ -1,3 +1,4 @@
+
 package com.example.demo.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -5,23 +6,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 
-/**
- * Kullanıcı Entity - Veritabanındaki 'kullanicilar' tablosunu temsil eder
- */
 @Entity
 @Table(name = "kullanicilar")
-@Data  // Lombok: getter, setter, toString, equals, hashCode otomatik
-@NoArgsConstructor  // Lombok: Parametresiz constructor
-@AllArgsConstructor  // Lombok: Tüm parametrelerle constructor
 @Schema(description = "User entity model")
 public class Kullanici {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(description = "User ID (auto-generated)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
@@ -62,11 +52,48 @@ public class Kullanici {
     @Schema(description = "Is user active? (false = deleted)", example = "true", defaultValue = "true")
     private Boolean aktif;
 
-    @PrePersist  // Kayıt edilmeden önce çalışır
+    public Kullanici() {}
+
+    public Kullanici(Long id, String ad, String soyad, String email, String departman, String password, LocalDateTime kayitTarihi, Boolean aktif) {
+        this.id = id;
+        this.ad = ad;
+        this.soyad = soyad;
+        this.email = email;
+        this.departman = departman;
+        this.password = password;
+        this.kayitTarihi = kayitTarihi;
+        this.aktif = aktif;
+    }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getAd() { return ad; }
+    public void setAd(String ad) { this.ad = ad; }
+
+    public String getSoyad() { return soyad; }
+    public void setSoyad(String soyad) { this.soyad = soyad; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getDepartman() { return departman; }
+    public void setDepartman(String departman) { this.departman = departman; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
+    public LocalDateTime getKayitTarihi() { return kayitTarihi; }
+    public void setKayitTarihi(LocalDateTime kayitTarihi) { this.kayitTarihi = kayitTarihi; }
+
+    public Boolean getAktif() { return aktif; }
+    public void setAktif(Boolean aktif) { this.aktif = aktif; }
+
+    @PrePersist
     protected void onCreate() {
         kayitTarihi = LocalDateTime.now();
         if (aktif == null) {
-            aktif = true;  // Varsayılan olarak aktif
+            aktif = true;
         }
     }
 }
