@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: mysqldb
+    container_name: efsora-postgres
     environment:
       POSTGRES_DB: envanter_db
       POSTGRES_USER: efsora_user

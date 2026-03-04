@@ -1,46 +1,178 @@
-# 🏢 Kurumsal Envanter ve Kullanıcı Yönetim Sistemi
+# 🏢 Efsora Labs Backend API
 
-**Backend API** - Java 21 + Spring Boot 4.0.3 + PostgreSQL
-
----
-
-## 📚 Katmanlı Mimari (Layered Architecture)
-
-```
-src/main/java/com/example/demo/
-├── entity/              → Veritabanı tabloları (Kullanici)
-├── repository/          → Veritabanı işlemleri (KullaniciRepository)
-├── service/             → İş mantığı (KullaniciService)
-├── controller/          → REST API endpoint'leri (KullaniciController)
-└── exception/           → Hata yönetimi (GlobalExceptionHandler)
-```
+**Backend API** - Java 21 + Spring Boot 4.0.3 + PostgreSQL + JWT Authentication
 
 ---
 
 ## 🚀 Hızlı Başlangıç
 
-### 1️⃣ PostgreSQL'i Docker ile Başlat
-
+### 1. PostgreSQL'i Başlat
 ```bash
 docker-compose up -d
 ```
 
-✅ Bu komut:
-- PostgreSQL 16 container'ını ayağa kaldırır
-- `envanter_db` veritabanını oluşturur
-- Port 5432'de dinlemeye başlar
-
-### 2️⃣ Spring Boot Uygulamasını Çalıştır
-
+### 2. Spring Boot'u Çalıştır
 ```bash
 ./mvnw spring-boot:run
 ```
 
-✅ Uygulama `http://localhost:8080` adresinde çalışacak
+✅ **API Hazır:** http://localhost:8080  
+✅ **Swagger UI:** http://localhost:8080/swagger-ui/index.html
 
 ---
 
 ## 🔌 API Endpoint'leri
+
+### 🔓 **Public Endpoints (Token Gerekmez)**
+
+#### Kullanıcı Kaydı
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Ahmet",
+    "lastName": "Yılmaz",
+    "email": "ahmet@test.com",
+    "password": "Pass123!",
+    "department": "IT"
+  }'
+```
+
+#### Login
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "ahmet@test.com",
+    "password": "Pass123!"
+  }'
+```
+
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiJ9...",
+  "refreshToken": "abc-123-...",
+  "email": "ahmet@test.com",
+  "firstName": "Ahmet"
+}
+```
+
+---
+
+### 🔒 **Protected Endpoints (JWT Token Gerekli)**
+
+#### Kullanıcıları Listele
+```bash
+curl -H "Authorization: Bearer <token>" \
+  http://localhost:8080/api/kullanicilar
+```
+
+#### Kullanıcı Detayı
+```bash
+curl -H "Authorization: Bearer <token>" \
+  http://localhost:8080/api/kullanicilar/1
+```
+
+---
+
+## 🔐 JWT Authentication
+
+### Nasıl Çalışır?
+
+1. **Register veya Login** yap → Token al
+2. **Token'ı her istekte gönder:** `Authorization: Bearer <token>`
+3. Token **24 saat** geçerli
+4. **Refresh Token** ile yenile (30 gün geçerli)
+
+### Örnek Kullanım
+```bash
+# 1. Login yap
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ahmet@test.com","password":"Pass123!"}' \
+  | jq -r '.token')
+
+# 2. Token ile kullanıcıları listele
+curl -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8080/api/kullanicilar
+```
+
+---
+
+## 📖 Swagger UI Kullanımı
+
+1. Tarayıcıda aç: http://localhost:8080/swagger-ui/index.html
+2. **POST /api/auth/login** ile giriş yap
+3. Token'ı kopyala
+4. Sağ üstteki **🔓 Authorize** butonuna tıkla
+5. Token'ı yapıştır (Bearer yazmadan)
+6. Artık tüm endpoint'leri test edebilirsin!
+
+---
+
+## 🛠️ Teknolojiler
+
+- Java 21
+- Spring Boot 4.0.3
+- Spring Security + JWT
+- PostgreSQL 16
+- Docker
+- Swagger/OpenAPI
+
+---
+
+## 📂 Proje Yapısı
+
+```
+src/main/java/com/example/demo/
+├── config/          → SecurityConfig, JwtProperties
+├── controller/      → AuthController, KullaniciController  
+├── dto/             → Request/Response DTO'lar
+├── entity/          → Kullanici, RefreshToken
+├── repository/      → JPA Repository'ler
+├── security/        → JwtUtil, JwtAuthenticationFilter
+└── service/         → Business logic
+```
+
+---
+
+## 🔧 Yapılandırma
+
+### Database (application.properties)
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/envanter_db
+spring.datasource.username=efsora_user
+spring.datasource.password=efsora123
+```
+
+### JWT
+```properties
+jwt.secret=your-secret-key
+jwt.expiration=86400000          # 24 saat
+jwt.refresh-expiration=2592000000 # 30 gün
+```
+
+---
+
+## 🐛 Sık Karşılaşılan Hatalar
+
+**401 Unauthorized:** Token geçersiz veya eksik  
+**403 Forbidden:** Token olmadan korumalı endpoint'e erişim  
+**400 Bad Request:** Eksik veya hatalı veri
+
+---
+
+## 📝 Not
+
+Bu proje öğrenme amaçlıdır. Production'da:
+- Şifreleri environment variable'da sakla
+- HTTPS kullan
+- Rate limiting ekle
+
+---
+
+**🎉 Başarıyla kuruldu!**
 
 ### 🟢 Sağlık Kontrolü
 ```http

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Efsora JWT Test - Tarayıcı Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .output {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: #48bb78; }
+        .error { color: #f56565; }
+        .info { color: #4299e1; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #48bb78;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Efsora JWT Sistemi - Tarayıcı Testi</h1>
+
+        <!-- Register Section -->
+        <div class="section">
+            <h3>📝 1. Kullanıcı Kaydı <span class="badge">PUBLIC</span></h3>
+            <input type="text" id="firstName" placeholder="Ad" value="Test">
+            <input type="text" id="lastName" placeholder="Soyad" value="User">
+            <input type="email" id="email" placeholder="Email" value="">
+            <input type="password" id="password" placeholder="Şifre" value="Pass123!">
+            <input type="text" id="department" placeholder="Departman" value="IT">
+            <button onclick="register()">🚀 Kayıt Ol</button>
+            <div id="registerOutput" class="output" style="display:none;"></div>
+        </div>
+
+        <!-- Login Section -->
+        <div class="section">
+            <h3>🔐 2. Giriş Yap (Login) <span class="badge">PUBLIC</span></h3>
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Şifre" value="Pass123!">
+            <button onclick="login()">🔑 Giriş Yap</button>
+            <div id="loginOutput" class="output" style="display:none;"></div>
+        </div>
+
+        <!-- Protected Section -->
+        <div class="section">
+            <h3>🔒 3. Korumalı Endpoint <span class="badge" style="background:#f56565;">JWT REQUIRED</span></h3>
+            <button onclick="getUsers()">👥 Kullanıcıları Listele</button>
+            <button onclick="getUserById()">👤 Kullanıcı Detay (ID:1)</button>
+            <div id="usersOutput" class="output" style="display:none;"></div>
+        </div>
+
+        <!-- Refresh Token Section -->
+        <div class="section">
+            <h3>🔄 4. Token Yenileme</h3>
+            <button onclick="refreshToken()">🔄 Token Yenile</button>
+            <div id="refreshOutput" class="output" style="display:none;"></div>
+        </div>
+
+        <!-- Logout Section -->
+        <div class="section">
+            <h3>🚪 5. Çıkış</h3>
+            <button onclick="logout()">🚪 Logout</button>
+            <button onclick="clearStorage()" style="background:#f56565;">🗑️ LocalStorage Temizle</button>
+            <div id="logoutOutput" class="output" style="display:none;"></div>
+        </div>
+
+        <!-- Status Section -->
+        <div class="section">
+            <h3>📊 Durum Bilgisi</h3>
+            <button onclick="showStatus()">📊 Token Durumunu Göster</button>
+            <div id="statusOutput" class="output" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080';
+
+        // Random email generator
+        document.getElementById('email').value = 'test' + Date.now() + '@efsora.com';
+
+        function showOutput(elementId, message, type = 'success') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.innerHTML = `<span class="${type}">${message}</span>`;
+        }
+
+        async function register() {
+            const data = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                department: document.getElementById('department').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('token', result.token);
+                    localStorage.setItem('refreshToken', result.refreshToken);
+                    localStorage.setItem('userEmail', result.email);
+                    
+                    showOutput('registerOutput', 
+                        `✅ Kayıt Başarılı!\n\n` +
+                        `ID: ${result.id}\n` +
+                        `Email: ${result.email}\n` +
+                        `Token: ${result.token.substring(0, 50)}...\n` +
+                        `Refresh Token: ${result.refreshToken}\n\n` +
+                        `✅ Token LocalStorage'a kaydedildi!`
+                    );
+                    document.getElementById('loginEmail').value = result.email;
+                } else {
+                    showOutput('registerOutput', `❌ Hata: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showOutput('registerOutput', `❌ Bağlantı Hatası: ${error.message}`, 'error');
+            }
+        }
+
+        async function login() {
+            const data = {
+                email: document.getElementById('loginEmail').value,
+                password: document.getElementById('loginPassword').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('token', result.token);
+                    localStorage.setItem('refreshToken', result.refreshToken);
+                    localStorage.setItem('userEmail', result.email);
+                    
+                    showOutput('loginOutput', 
+                        `✅ Giriş Başarılı!\n\n` +
+                        `Kullanıcı: ${result.firstName} ${result.lastName}\n` +
+                        `Email: ${result.email}\n` +
+                        `Departman: ${result.department}\n` +
+                        `Token: ${result.token.substring(0, 50)}...\n\n` +
+                        `✅ Token LocalStorage'a kaydedildi!`
+                    );
+                } else {
+                    showOutput('loginOutput', `❌ Hata: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showOutput('loginOutput', `❌ Bağlantı Hatası: ${error.message}`, 'error');
+            }
+        }
+
+        async function getUsers() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showOutput('usersOutput', '❌ Token bulunamadı! Önce giriş yapın.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/kullanicilar`, {
+                    headers: {'Authorization': 'Bearer ' + token}
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    let output = `✅ ${users.length} Kullanıcı Listelendi:\n\n`;
+                    users.slice(0, 5).forEach((user, index) => {
+                        output += `${index + 1}. ${user.firstName} ${user.lastName}\n`;
+                        output += `   Email: ${user.email}\n`;
+                        output += `   Dept: ${user.department}\n\n`;
+                    });
+                    if (users.length > 5) {
+                        output += `... ve ${users.length - 5} kullanıcı daha`;
+                    }
+                    showOutput('usersOutput', output);
+                } else {
+                    showOutput('usersOutput', `❌ HTTP ${response.status} - Erişim Engellendi`, 'error');
+                }
+            } catch (error) {
+                showOutput('usersOutput', `❌ Bağlantı Hatası: ${error.message}`, 'error');
+            }
+        }
+
+        async function getUserById() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showOutput('usersOutput', '❌ Token bulunamadı! Önce giriş yapın.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/kullanicilar/1`, {
+                    headers: {'Authorization': 'Bearer ' + token}
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    showOutput('usersOutput', 
+                        `✅ Kullanıcı Detayı:\n\n` +
+                        `ID: ${user.id}\n` +
+                        `Ad Soyad: ${user.firstName} ${user.lastName}\n` +
+                        `Email: ${user.email}\n` +
+                        `Departman: ${user.department}\n` +
+                        `Aktif: ${user.active ? 'Evet' : 'Hayır'}\n` +
+                        `Kayıt Tarihi: ${user.registrationDate}`
+                    );
+                } else {
+                    showOutput('usersOutput', `❌ HTTP ${response.status} - Erişim Engellendi`, 'error');
+                }
+            } catch (error) {
+                showOutput('usersOutput', `❌ Bağlantı Hatası: ${error.message}`, 'error');
+            }
+        }
+
+        async function refreshToken() {
+            const refreshToken = localStorage.getItem('refreshToken');
+            
+            if (!refreshToken) {
+                showOutput('refreshOutput', '❌ Refresh token bulunamadı!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ refreshToken: refreshToken })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('token', result.token);
+                    showOutput('refreshOutput', 
+                        `✅ Token Yenilendi!\n\n` +
+                        `Yeni Token: ${result.token.substring(0, 50)}...\n` +
+                        `Refresh Token: ${result.refreshToken}\n\n` +
+                        `✅ Yeni token LocalStorage'a kaydedildi!`
+                    );
+                } else {
+                    showOutput('refreshOutput', `❌ Hata: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showOutput('refreshOutput', `❌ Bağlantı Hatası: ${error.message}`, 'error');
+            }
+        }
+
+        async function logout() {
+            const refreshToken = localStorage.getItem('refreshToken');
+            
+            if (!refreshToken) {
+                showOutput('logoutOutput', '❌ Refresh token bulunamadı!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ refreshToken: refreshToken })
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('refreshToken');
+                    localStorage.removeItem('userEmail');
+                    showOutput('logoutOutput', '✅ Çıkış Başarılı! Token ve Refresh Token silindi.', 'success');
+                } else {
+                    showOutput('logoutOutput', '❌ Logout başarısız!', 'error');
+                }
+            } catch (error) {
+                showOutput('logoutOutput', `❌ Bağlantı Hatası: ${error.message}`, 'error');
+            }
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            showOutput('logoutOutput', '✅ LocalStorage temizlendi!', 'success');
+        }
+
+        function showStatus() {
+            const token = localStorage.getItem('token');
+            const refreshToken = localStorage.getItem('refreshToken');
+            const userEmail = localStorage.getItem('userEmail');
+
+            let output = '📊 LocalStorage Durumu:\n\n';
+            
+            if (token) {
+                output += `✅ Access Token: ${token.substring(0, 50)}...\n`;
+            } else {
+                output += `❌ Access Token: Yok\n`;
+            }
+
+            if (refreshToken) {
+                output += `✅ Refresh Token: ${refreshToken}\n`;
+            } else {
+                output += `❌ Refresh Token: Yok\n`;
+            }
+
+            if (userEmail) {
+                output += `✅ Kullanıcı Email: ${userEmail}\n`;
+            } else {
+                output += `❌ Kullanıcı Email: Yok\n`;
+            }
+
+            showOutput('statusOutput', output, 'info');
+        }
+
+        // Initial status check
+        const token = localStorage.getItem('token');
+        if (token) {
+            console.log('🔐 Mevcut token bulundu:', token.substring(0, 50) + '...');
+        } else {
+            console.log('ℹ️ Token bulunamadı. Kayıt ol veya giriş yap.');
+        }
+    </script>
+</body>
+</html>

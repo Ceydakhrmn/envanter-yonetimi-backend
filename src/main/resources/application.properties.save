@@ -1,0 +1,42 @@
+ cd /home/ceyda/projeler/efsora/backend && ./mvnw spring-boot:run
+ cd ~/projeler/efsora/backend && ./mvnw spring-boot:run
+spring.application.name=EfsoraBackend
+
+# Server Port
+server.port=8080
+
+# PostgreSQL Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/envanter_db
+spring.datasource.username=efsora_user
+spring.datasource.password=efsora123
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# Logging
+logging.level.org.springframework.web=INFO
+logging.level.com.example.demo=DEBUG
+ ./mvnw spring-boot:run -e
+ fuser -k 8080/tcp
+ cd ~/projeler/efsora/backend && ./mvnw clean spring-boot:run
+ cd ~/projeler/efsora/backend && ./mvnw clean spring-boot:run
+git log --oneline --decorate --graph --all --since='14 hours ago'
+ cd ~/projeler/efsora/backend && git log --oneline --decorate --graph --all --since='15 hours ago'
+ cd ~/projeler/efsora/backend && ./mvnw clean spring-boot:run
+ docker run --name efsora-postgres -e POSTGRES_PASSWORD=ceyda123 -p 5432:5432 -d postgres
+ cd /home/ceyda/projeler/efsora/backend && ./mvnw clean spring-boot:run
+ cd /home/ceyda/projeler/efsora/backend && ./mvnw clean spring-boot:run
+ cd /home/ceyda/projeler/efsora/backend && ./mvnw clean spring-boot:run
+ cd /home/ceyda/projeler/efsora/backend && git status
+ cd /home/ceyda/projeler/efsora/backend && git init
+ cd /home/ceyda/projeler/efsora/backend && git add . && git commit -m "İlk yedek: proje başlangıcı ve mevcut dosyalar"
+ cd /home/ceyda/projeler/efsora/backend && git log --oneline --decorate --graph --all --since='15 hours ago'
+ ./mvnw spring-boot:run
+ curl -i http://localhost:8080/api/kullanicilar
+ curl -i http://localhost:8080/api/kullanicilar
+ curl -i http://localhost:8080/api/kullanicilar
+
