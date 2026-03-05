@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: efsora-postgres
     environment:
-      POSTGRES_DB: envanter_db
-      POSTGRES_USER: efsora_user
-      POSTGRES_PASSWORD: efsora123
+      POSTGRES_DB: ${POSTGRES_DB:-envanter_db}
+      POSTGRES_USER: ${POSTGRES_USER:-efsora_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:

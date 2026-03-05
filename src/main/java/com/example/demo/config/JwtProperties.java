@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * JWT Configuration Properties
- * Maps jwt.* properties from application.properties
+ * Maps jwt.* values from Spring configuration (application.yml / env vars)
  */
 @Configuration
 @ConfigurationProperties(prefix = "jwt")
