@@ -26,7 +26,7 @@ public class KullaniciResponseDTO {
     @Schema(description = "User's department", example = "IT")
     private String department;
 
-    @Schema(description = "Date and time when user registered", example = "2024-05-01T12:00:00")
+    @Schema(description = "Date and time when user registered", example = "2026-03-05T12:00:00")
     private java.time.LocalDateTime registrationDate;
 
     @Schema(description = "Indicates if user account is active", example = "true")

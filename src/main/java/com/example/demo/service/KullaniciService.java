@@ -2,6 +2,9 @@ package com.example.demo.service;
 
 import com.example.demo.controller.BaseController;
 import com.example.demo.entity.Kullanici;
+import com.example.demo.exception.EmailAlreadyExistsException;
+import com.example.demo.exception.InvalidCredentialsException;
+import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.KullaniciRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +67,7 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
         
         // Email check
         if (kullaniciRepository.existsByEmail(kullanici.getEmail())) {
-            throw new RuntimeException("This email address is already registered: " + kullanici.getEmail());
+            throw new EmailAlreadyExistsException("This email address is already registered: " + kullanici.getEmail());
         }
         
         return kullaniciRepository.save(kullanici);
@@ -84,7 +87,7 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     public Kullanici kullaniciBul(Long id) {
         log.info("Searching for user: ID={}", id);
         return kullaniciRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found: ID=" + id));
+            .orElseThrow(() -> new UserNotFoundException("User not found: ID=" + id));
     }
 
     /**
@@ -93,7 +96,7 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     public Kullanici emailIleKullaniciBul(String email) {
         log.info("Searching for user: Email={}", email);
         return kullaniciRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found: Email=" + email));
+            .orElseThrow(() -> new UserNotFoundException("User not found: Email=" + email));
     }
 
     /**
@@ -121,7 +124,7 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
         // If email is changing, check for duplicate
         if (!mevcutKullanici.getEmail().equals(yeniKullanici.getEmail())) {
             if (kullaniciRepository.existsByEmail(yeniKullanici.getEmail())) {
-                throw new RuntimeException("This email address is already in use: " + yeniKullanici.getEmail());
+                throw new EmailAlreadyExistsException("This email address is already in use: " + yeniKullanici.getEmail());
             }
             mevcutKullanici.setEmail(yeniKullanici.getEmail());
         }
@@ -157,27 +160,25 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     }
 
     /**
-     * Login - Verify email and password, returns Kullanici if successful, null otherwise
+     * Login - Verify email and password and return Kullanici when successful
      */
     public Kullanici login(String email, String password) {
         log.info("Login attempt: {}", email);
-        var kullaniciOpt = kullaniciRepository.findByEmail(email);
-        if (kullaniciOpt.isEmpty()) {
-            log.warn("Login failed: User not found - {}", email);
-            return null;
-        }
-        Kullanici kullanici = kullaniciOpt.get();
+        Kullanici kullanici = kullaniciRepository.findByEmail(email)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+
         if (!kullanici.getActive()) {
             log.warn("Login failed: User is inactive - {}", email);
-            return null;
+            throw new InvalidCredentialsException("Invalid email or password");
         }
+
         boolean passwordMatches = passwordEncoder.matches(password, kullanici.getPassword());
         if (passwordMatches) {
             log.info("Login successful: {}", email);
             return kullanici;
-        } else {
-            log.warn("Login failed: Invalid password - {}", email);
-            return null;
         }
+
+        log.warn("Login failed: Invalid password - {}", email);
+        throw new InvalidCredentialsException("Invalid email or password");
     }
 }

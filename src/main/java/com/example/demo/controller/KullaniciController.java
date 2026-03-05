@@ -162,13 +162,8 @@ public class KullaniciController {
     public ResponseEntity<KullaniciResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
         log.info("API: Login attempt for email: {}", loginRequest.getEmail());
         Kullanici kullanici = service.login(loginRequest.getEmail(), loginRequest.getPassword());
-        if (kullanici != null) {
-            log.info("Login successful for: {}", loginRequest.getEmail());
-            return ResponseEntity.ok(mapper.toResponseDTO(kullanici));
-        } else {
-            log.warn("Login failed for: {}", loginRequest.getEmail());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        log.info("Login successful for: {}", loginRequest.getEmail());
+        return ResponseEntity.ok(mapper.toResponseDTO(kullanici));
     }
 
     @Operation(summary = "Permanently delete user", description = "Completely removes user from database (irreversible!)")

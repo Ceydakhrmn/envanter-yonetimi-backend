@@ -4,9 +4,13 @@ import com.example.demo.dto.AuthResponseDTO;
 import com.example.demo.dto.ErrorResponseDTO;
 import com.example.demo.dto.KullaniciRequestDTO;
 import com.example.demo.dto.LoginRequestDTO;
+import com.example.demo.dto.MessageResponseDTO;
 import com.example.demo.dto.RefreshTokenRequestDTO;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.entity.RefreshToken;
+import com.example.demo.exception.EmailAlreadyExistsException;
+import com.example.demo.exception.RefreshTokenNotFoundException;
+import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.KullaniciRepository;
 import com.example.demo.security.JwtUtil;
 import com.example.demo.service.RefreshTokenService;
@@ -72,17 +76,13 @@ public class AuthController {
         )
     })
     @PostMapping("/register")
-    public ResponseEntity<Object> register(@Valid @RequestBody KullaniciRequestDTO request) {
+    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody KullaniciRequestDTO request) {
         log.info("Registration attempt for email: {}", request.getEmail());
 
         // Check if email already exists
         if (kullaniciRepository.existsByEmail(request.getEmail())) {
             log.warn("Registration failed: Email already exists: {}", request.getEmail());
-            ErrorResponseDTO error = ErrorResponseDTO.builder()
-                    .message("Email already registered: " + request.getEmail())
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .build();
-            return ResponseEntity.badRequest().body(error);
+            throw new EmailAlreadyExistsException("Email already registered: " + request.getEmail());
         }
 
         // Create new user
@@ -144,53 +144,43 @@ public class AuthController {
         )
     })
     @PostMapping("/login")
-    public ResponseEntity<Object> login(@Valid @RequestBody LoginRequestDTO request) {
+    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
         log.info("Login attempt for email: {}", request.getEmail());
 
-        try {
-            // Authenticate user
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
-            );
+        // Authenticate user
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                request.getEmail(),
+                request.getPassword()
+            )
+        );
 
-            // Get authenticated user
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            Kullanici kullanici = kullaniciRepository.findByEmail(userDetails.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+        // Get authenticated user
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Kullanici kullanici = kullaniciRepository.findByEmail(userDetails.getUsername())
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-            // Generate JWT token
-            String token = jwtUtil.generateToken(userDetails);
+        // Generate JWT token
+        String token = jwtUtil.generateToken(userDetails);
             
-            // Generate refresh token
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(kullanici.getId());
+        // Generate refresh token
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(kullanici.getId());
 
-            log.info("Login successful for user: {}", kullanici.getEmail());
+        log.info("Login successful for user: {}", kullanici.getEmail());
 
-            // Build response
-            AuthResponseDTO response = AuthResponseDTO.builder()
-                    .token(token)
-                    .type("Bearer")
-                    .refreshToken(refreshToken.getToken())
-                    .id(kullanici.getId())
-                    .email(kullanici.getEmail())
-                    .firstName(kullanici.getFirstName())
-                    .lastName(kullanici.getLastName())
-                    .department(kullanici.getDepartment())
-                    .build();
+        // Build response
+        AuthResponseDTO response = AuthResponseDTO.builder()
+            .token(token)
+            .type("Bearer")
+            .refreshToken(refreshToken.getToken())
+            .id(kullanici.getId())
+            .email(kullanici.getEmail())
+            .firstName(kullanici.getFirstName())
+            .lastName(kullanici.getLastName())
+            .department(kullanici.getDepartment())
+            .build();
 
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Login failed for email: {} - {}", request.getEmail(), e.getMessage());
-            ErrorResponseDTO error = ErrorResponseDTO.builder()
-                    .message("Invalid email or password")
-                    .status(HttpStatus.UNAUTHORIZED.value())
-                    .build();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-        }
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -199,8 +189,10 @@ public class AuthController {
     @Operation(summary = "Test authentication", description = "Verifies that JWT token is working")
     @ApiResponse(responseCode = "200", description = "Token is valid")
     @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("JWT Authentication is working! ✅");
+    public ResponseEntity<MessageResponseDTO> test() {
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+                .message("JWT Authentication is working! OK")
+                .build());
     }
 
     /**
@@ -227,47 +219,37 @@ public class AuthController {
         )
     })
     @PostMapping("/refresh")
-    public ResponseEntity<Object> refreshToken(@Valid @RequestBody RefreshTokenRequestDTO request) {
+    public ResponseEntity<AuthResponseDTO> refreshToken(@Valid @RequestBody RefreshTokenRequestDTO request) {
         log.info("Refresh token request received");
 
-        try {
-            // Find and verify refresh token
-            RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken())
-                    .orElseThrow(() -> new RuntimeException("Refresh token bulunamadı"));
+        // Find and verify refresh token
+        RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken())
+            .orElseThrow(() -> new RefreshTokenNotFoundException("Refresh token bulunamadı"));
 
-            // Verify expiration
-            refreshToken = refreshTokenService.verifyExpiration(refreshToken);
+        // Verify expiration
+        refreshToken = refreshTokenService.verifyExpiration(refreshToken);
 
-            // Get user
-            Kullanici kullanici = refreshToken.getKullanici();
+        // Get user
+        Kullanici kullanici = refreshToken.getKullanici();
 
-            // Generate new access token
-            String newAccessToken = jwtUtil.generateToken(kullanici);
+        // Generate new access token
+        String newAccessToken = jwtUtil.generateToken(kullanici);
 
-            log.info("Access token refreshed for user: {}", kullanici.getEmail());
+        log.info("Access token refreshed for user: {}", kullanici.getEmail());
 
-            // Build response
-            AuthResponseDTO response = AuthResponseDTO.builder()
-                    .token(newAccessToken)
-                    .type("Bearer")
-                    .refreshToken(refreshToken.getToken())
-                    .id(kullanici.getId())
-                    .email(kullanici.getEmail())
-                    .firstName(kullanici.getFirstName())
-                    .lastName(kullanici.getLastName())
-                    .department(kullanici.getDepartment())
-                    .build();
+        // Build response
+        AuthResponseDTO response = AuthResponseDTO.builder()
+            .token(newAccessToken)
+            .type("Bearer")
+            .refreshToken(refreshToken.getToken())
+            .id(kullanici.getId())
+            .email(kullanici.getEmail())
+            .firstName(kullanici.getFirstName())
+            .lastName(kullanici.getLastName())
+            .department(kullanici.getDepartment())
+            .build();
 
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Refresh token failed: {}", e.getMessage());
-            ErrorResponseDTO error = ErrorResponseDTO.builder()
-                    .message("Refresh token geçersiz veya süresi dolmuş: " + e.getMessage())
-                    .status(HttpStatus.UNAUTHORIZED.value())
-                    .build();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-        }
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -281,8 +263,8 @@ public class AuthController {
             description = "Logout successful"
         ),
         @ApiResponse(
-            responseCode = "400", 
-            description = "Invalid request",
+            responseCode = "401", 
+            description = "Invalid refresh token",
             content = @Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = @Schema(implementation = ErrorResponseDTO.class)
@@ -290,25 +272,18 @@ public class AuthController {
         )
     })
     @PostMapping("/logout")
-    public ResponseEntity<Object> logout(@RequestBody RefreshTokenRequestDTO request) {
+    public ResponseEntity<MessageResponseDTO> logout(@RequestBody RefreshTokenRequestDTO request) {
         log.info("Logout request received");
 
-        try {
-            RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken())
-                    .orElseThrow(() -> new RuntimeException("Refresh token bulunamadı"));
+        RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken())
+                .orElseThrow(() -> new RefreshTokenNotFoundException("Refresh token bulunamadı"));
 
-            refreshTokenService.deleteByKullaniciId(refreshToken.getKullanici().getId());
+        refreshTokenService.deleteByKullaniciId(refreshToken.getKullanici().getId());
 
-            log.info("User logged out successfully");
-            return ResponseEntity.ok().body("Logout başarılı");
+        log.info("User logged out successfully");
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+            .message("Logout başarılı")
+            .build());
 
-        } catch (Exception e) {
-            log.error("Logout failed: {}", e.getMessage());
-            ErrorResponseDTO error = ErrorResponseDTO.builder()
-                    .message("Logout başarısız: " + e.getMessage())
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .build();
-            return ResponseEntity.badRequest().body(error);
-        }
     }
 }

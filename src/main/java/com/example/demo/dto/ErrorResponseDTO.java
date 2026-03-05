@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * Error Response DTO
@@ -25,7 +26,10 @@ public class ErrorResponseDTO {
     @Schema(description = "HTTP status code", example = "400")
     private int status;
 
-    @Schema(description = "Timestamp when error occurred", example = "2024-05-01T12:00:00")
+    @Schema(description = "Timestamp when error occurred", example = "2026-03-05T12:00:00")
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();
+
+    @Schema(description = "Field-level validation errors")
+    private Map<String, String> errors;
 }

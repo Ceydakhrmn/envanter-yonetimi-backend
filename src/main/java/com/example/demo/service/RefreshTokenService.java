@@ -3,6 +3,9 @@ package com.example.demo.service;
 import com.example.demo.config.JwtProperties;
 import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.Kullanici;
+import com.example.demo.exception.RefreshTokenExpiredException;
+import com.example.demo.exception.RefreshTokenNotFoundException;
+import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.KullaniciRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +35,7 @@ public class RefreshTokenService {
         });
 
         Kullanici kullanici = kullaniciRepository.findById(kullaniciId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+            .orElseThrow(() -> new UserNotFoundException("Kullanıcı bulunamadı"));
 
         RefreshToken refreshToken = RefreshToken.builder()
                 .kullanici(kullanici)
@@ -55,9 +58,9 @@ public class RefreshTokenService {
      * Süre dolmuşsa veritabanından siler
      */
     public RefreshToken verifyExpiration(RefreshToken token) {
-        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
+        if (token.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(token);
-            throw new RuntimeException("Refresh token süresi dolmuş. Lütfen tekrar giriş yapın.");
+            throw new RefreshTokenExpiredException("Refresh token süresi dolmuş. Lütfen tekrar giriş yapın.");
         }
         return token;
     }

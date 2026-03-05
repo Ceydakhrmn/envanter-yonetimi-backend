@@ -1,6 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.entity.Kullanici;
+import com.example.demo.exception.EmailAlreadyExistsException;
+import com.example.demo.exception.InvalidCredentialsException;
+import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.KullaniciRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,6 +34,9 @@ class KullaniciServiceTest {
 
     @Mock
     private KullaniciRepository kullaniciRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private KullaniciService kullaniciService;
@@ -74,7 +81,7 @@ class KullaniciServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> kullaniciService.kullaniciOlustur(testKullanici))
-                .isInstanceOf(RuntimeException.class)
+            .isInstanceOf(EmailAlreadyExistsException.class)
                 .hasMessageContaining("This email address is already");
 
         verify(kullaniciRepository, never()).save(any(Kullanici.class));
@@ -123,7 +130,7 @@ class KullaniciServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> kullaniciService.kullaniciBul(999L))
-                .isInstanceOf(RuntimeException.class)
+            .isInstanceOf(UserNotFoundException.class)
                 .hasMessageContaining("User not found");
     }
 
@@ -205,5 +212,49 @@ class KullaniciServiceTest {
         // Then
         assertThat(sonuc).hasSize(1);
         assertThat(sonuc.get(0).getDepartment()).isEqualTo("IT");
+    }
+
+    @Test
+    @DisplayName("Login should succeed when credentials are valid")
+    void login_basarili() {
+        when(kullaniciRepository.findByEmail("ahmet@efsora.com")).thenReturn(Optional.of(testKullanici));
+        when(passwordEncoder.matches("pass123", testKullanici.getPassword())).thenReturn(true);
+
+        Kullanici result = kullaniciService.login("ahmet@efsora.com", "pass123");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getEmail()).isEqualTo("ahmet@efsora.com");
+    }
+
+    @Test
+    @DisplayName("Login should fail when email does not exist")
+    void login_emailYok() {
+        when(kullaniciRepository.findByEmail("none@efsora.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> kullaniciService.login("none@efsora.com", "pass123"))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("Invalid email or password");
+    }
+
+    @Test
+    @DisplayName("Login should fail when user is inactive")
+    void login_kullaniciPasif() {
+        testKullanici.setActive(false);
+        when(kullaniciRepository.findByEmail("ahmet@efsora.com")).thenReturn(Optional.of(testKullanici));
+
+        assertThatThrownBy(() -> kullaniciService.login("ahmet@efsora.com", "pass123"))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("Invalid email or password");
+    }
+
+    @Test
+    @DisplayName("Login should fail when password is wrong")
+    void login_sifreYanlis() {
+        when(kullaniciRepository.findByEmail("ahmet@efsora.com")).thenReturn(Optional.of(testKullanici));
+        when(passwordEncoder.matches("wrong", testKullanici.getPassword())).thenReturn(false);
+
+        assertThatThrownBy(() -> kullaniciService.login("ahmet@efsora.com", "wrong"))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("Invalid email or password");
     }
 }
