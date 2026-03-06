@@ -83,6 +83,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints (no authentication required)
                 .requestMatchers(
+                    "/",                    // Root health check for hosting platforms
                     "/api/auth/**",           // Auth endpoints (login, register)
                     "/swagger-ui/**",          // Swagger UI
                     "/v3/api-docs/**",         // OpenAPI docs
