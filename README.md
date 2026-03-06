@@ -118,3 +118,30 @@ Basarili response icinde `token` ve `refreshToken` alanlari doner.
 
 - `JWT_SECRET` ve `POSTGRES_PASSWORD` gibi gizli degerler kod icine yazilmamalidir.
 - Bu degerler environment variable olarak verilmistir.
+
+## Canli Deploy (Render / Railway)
+
+Backend su an cloud deploy icin hazir:
+
+- Uygulama portu `PORT` uzerinden okunur.
+- CORS origin listesi `APP_CORS_ALLOWED_ORIGINS` ile environment variable'dan yonetilir.
+
+### Gerekli Env Vars
+
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `JWT_SECRET`
+- `APP_CORS_ALLOWED_ORIGINS` (ornek: `https://efsora-frontend.onrender.com`)
+
+### Render Web Service
+
+- Build Command: `./mvnw clean package -DskipTests`
+- Start Command: `java -Dserver.port=$PORT -jar target/demo-0.0.1-SNAPSHOT.jar`
+
+### Railway Service
+
+- Build Command: `./mvnw clean package -DskipTests`
+- Start Command: `java -Dserver.port=$PORT -jar target/demo-0.0.1-SNAPSHOT.jar`
+
+PostgreSQL'i Render/Railway uzerinden managed servis olarak olusturup yukaridaki `SPRING_DATASOURCE_*` degerlerine baglamaniz yeterlidir.

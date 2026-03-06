@@ -13,5 +13,5 @@ RUN ./mvnw dependency:go-offline
 COPY . .
 RUN ./mvnw clean package -DskipTests
 
-# Uygulamayı başlat (sh -c ile glob desteği)
-CMD ["sh", "-c", "java -jar target/*.jar"]
+# Uygulamayı başlat (platformun verdiği PORT'u kullan)
+CMD ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar target/*.jar"]
