@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +33,15 @@ public class JwtUtil {
      * Generate secret key from string
      */
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+        try {
+            String rawSecret = jwtProperties.getSecret() == null ? "" : jwtProperties.getSecret();
+            // Derive 512-bit key material so JWT signing remains stable even with short env secrets.
+            byte[] keyBytes = MessageDigest.getInstance("SHA-512")
+                    .digest(rawSecret.getBytes(StandardCharsets.UTF_8));
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-512 algorithm is not available", e);
+        }
     }
 
     /**
