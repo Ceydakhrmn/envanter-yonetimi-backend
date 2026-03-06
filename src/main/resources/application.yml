@@ -25,7 +25,7 @@ logging:
     org.springframework.security: WARN
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:replace-this-dev-secret-with-env-value-please-1234567890}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:2592000000}
 
