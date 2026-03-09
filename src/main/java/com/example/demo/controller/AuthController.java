@@ -187,7 +187,14 @@ public class AuthController {
      * Test endpoint to verify JWT authentication
      */
     @Operation(summary = "Test authentication", description = "Verifies that JWT token is working")
-    @ApiResponse(responseCode = "200", description = "Token is valid")
+    @ApiResponse(
+        responseCode = "200",
+        description = "Token is valid",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = @Schema(implementation = MessageResponseDTO.class)
+        )
+    )
     @GetMapping("/test")
     public ResponseEntity<MessageResponseDTO> test() {
         return ResponseEntity.ok(MessageResponseDTO.builder()

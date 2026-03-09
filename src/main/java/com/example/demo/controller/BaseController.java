@@ -1,12 +1,16 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.MessageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -127,9 +131,18 @@ public abstract class BaseController<T, ID, S extends BaseController.BaseService
      * Health check endpoint
      */
     @Operation(summary = "Health check")
-    @ApiResponse(responseCode = "200", description = "API is running")
+    @ApiResponse(
+        responseCode = "200",
+        description = "API is running",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = @Schema(implementation = MessageResponseDTO.class)
+        )
+    )
     @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok(entityName + " API is running! ✅");
+    public ResponseEntity<MessageResponseDTO> health() {
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+                .message(entityName + " API is running! ✅")
+                .build());
     }
 }

@@ -181,4 +181,24 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
         log.warn("Login failed: Invalid password - {}", email);
         throw new InvalidCredentialsException("Invalid email or password");
     }
+
+    /**
+     * Change password for the authenticated user.
+     */
+    @Transactional
+    public void sifreDegistir(String email, String currentPassword, String newPassword) {
+        log.info("Password change attempt: {}", email);
+
+        Kullanici kullanici = kullaniciRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found: Email=" + email));
+
+        if (!passwordEncoder.matches(currentPassword, kullanici.getPassword())) {
+            log.warn("Password change failed: current password mismatch - {}", email);
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+
+        kullanici.setPassword(passwordEncoder.encode(newPassword));
+        kullaniciRepository.save(kullanici);
+        log.info("Password changed successfully: {}", email);
+    }
 }

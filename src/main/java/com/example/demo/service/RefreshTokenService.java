@@ -4,7 +4,6 @@ import com.example.demo.config.JwtProperties;
 import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.exception.RefreshTokenExpiredException;
-import com.example.demo.exception.RefreshTokenNotFoundException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.RefreshTokenRepository;
 import com.example.demo.repository.KullaniciRepository;

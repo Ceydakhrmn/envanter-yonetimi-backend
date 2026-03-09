@@ -4,10 +4,14 @@ import com.example.demo.dto.KullaniciMapper;
 import com.example.demo.dto.KullaniciRequestDTO;
 import com.example.demo.dto.KullaniciResponseDTO;
 import com.example.demo.dto.LoginRequestDTO;
+import com.example.demo.dto.ChangePasswordRequestDTO;
+import com.example.demo.dto.MessageResponseDTO;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.service.KullaniciService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +19,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -110,10 +117,19 @@ public class KullaniciController {
     }
 
     @Operation(summary = "Health check", description = "Checks if the User Management API is running")
-    @ApiResponse(responseCode = "200", description = "API is operational")
+    @ApiResponse(
+        responseCode = "200",
+        description = "API is operational",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = @Schema(implementation = MessageResponseDTO.class)
+        )
+    )
     @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("User API is running! ✅");
+    public ResponseEntity<MessageResponseDTO> health() {
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+                .message("User API is running! ✅")
+                .build());
     }
 
     // ==================== User-Specific Endpoints ====================
@@ -176,5 +192,22 @@ public class KullaniciController {
         log.warn("API: Permanently deleting user ID={}", id);
         service.kullaniciKaliciSil(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Change password", description = "Allows authenticated user to set a new password")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password changed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid current/new password"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    @PostMapping("/change-password")
+    public ResponseEntity<MessageResponseDTO> sifreDegistir(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequestDTO request) {
+        log.info("API: Password change request for email={}", userDetails.getUsername());
+        service.sifreDegistir(userDetails.getUsername(), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+                .message("Password changed successfully")
+                .build());
     }
 }
