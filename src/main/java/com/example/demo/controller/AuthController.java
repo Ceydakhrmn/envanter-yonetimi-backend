@@ -2,10 +2,12 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.AuthResponseDTO;
 import com.example.demo.dto.ErrorResponseDTO;
+import com.example.demo.dto.ForgotPasswordRequestDTO;
 import com.example.demo.dto.KullaniciRequestDTO;
 import com.example.demo.dto.LoginRequestDTO;
 import com.example.demo.dto.MessageResponseDTO;
 import com.example.demo.dto.RefreshTokenRequestDTO;
+import com.example.demo.dto.ResetPasswordRequestDTO;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.entity.RefreshToken;
 import com.example.demo.exception.EmailAlreadyExistsException;
@@ -13,6 +15,7 @@ import com.example.demo.exception.RefreshTokenNotFoundException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.KullaniciRepository;
 import com.example.demo.security.JwtUtil;
+import com.example.demo.service.PasswordResetService;
 import com.example.demo.service.RefreshTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -51,6 +54,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+    private final PasswordResetService passwordResetService;
 
     /**
      * User Registration
@@ -291,6 +295,39 @@ public class AuthController {
         return ResponseEntity.ok(MessageResponseDTO.builder()
             .message("Logout başarılı")
             .build());
+    }
 
+    /**
+     * Forgot Password — reset token oluşturur
+     */
+    @Operation(summary = "Forgot password", description = "Creates a password reset token for the given email")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reset token returned"),
+        @ApiResponse(responseCode = "404", description = "Email not found")
+    })
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
+        log.info("Forgot password request for: {}", request.getEmail());
+        String token = passwordResetService.createResetToken(request.getEmail());
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+                .message(token)
+                .build());
+    }
+
+    /**
+     * Reset Password — token + yeni şifre ile şifreyi sıfırlar
+     */
+    @Operation(summary = "Reset password", description = "Resets password using a valid reset token")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password reset successful"),
+        @ApiResponse(responseCode = "400", description = "Invalid or expired token")
+    })
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
+        log.info("Reset password request received");
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+                .message("Password reset successfully.")
+                .build());
     }
 }

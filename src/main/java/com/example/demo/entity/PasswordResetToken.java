@@ -1,0 +1,43 @@
+package com.example.demo.entity;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.Instant;
+
+@Entity
+@Table(name = "password_reset_tokens")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class PasswordResetToken {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String token;
+
+    @ManyToOne
+    @JoinColumn(name = "kullanici_id", nullable = false)
+    private Kullanici kullanici;
+
+    @Column(nullable = false)
+    private Instant expiryDate;
+
+    @Column(nullable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private boolean used;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+    }
+}

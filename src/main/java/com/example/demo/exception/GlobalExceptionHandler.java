@@ -20,6 +20,16 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ErrorResponseDTO> handleInvalidToken(InvalidTokenException ex) {
+        ErrorResponseDTO error = ErrorResponseDTO.builder()
+                .message(ex.getMessage())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .build();
+        log.warn("Invalid token: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponseDTO> handleUserNotFound(UserNotFoundException ex) {
         ErrorResponseDTO error = ErrorResponseDTO.builder()
@@ -51,6 +61,17 @@ public class GlobalExceptionHandler {
 
         log.warn("Invalid credentials: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(SamePasswordException.class)
+    public ResponseEntity<ErrorResponseDTO> handleSamePassword(SamePasswordException ex) {
+        ErrorResponseDTO error = ErrorResponseDTO.builder()
+                .message(ex.getMessage())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .build();
+
+        log.warn("Same password rejected: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(RefreshTokenNotFoundException.class)
