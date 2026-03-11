@@ -4,6 +4,7 @@ import com.example.demo.controller.BaseController;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.exception.EmailAlreadyExistsException;
 import com.example.demo.exception.InvalidCredentialsException;
+import com.example.demo.exception.SamePasswordException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.KullaniciRepository;
 import lombok.RequiredArgsConstructor;
@@ -195,6 +196,11 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
         if (!passwordEncoder.matches(currentPassword, kullanici.getPassword())) {
             log.warn("Password change failed: current password mismatch - {}", email);
             throw new InvalidCredentialsException("Current password is incorrect");
+        }
+
+        if (currentPassword.equals(newPassword)) {
+            log.warn("Password change failed: new password is same as current - {}", email);
+            throw new SamePasswordException("New password must be different from current password");
         }
 
         kullanici.setPassword(passwordEncoder.encode(newPassword));

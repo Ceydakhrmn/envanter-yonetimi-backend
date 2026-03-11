@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.exception.EmailAlreadyExistsException;
 import com.example.demo.exception.InvalidCredentialsException;
+import com.example.demo.exception.SamePasswordException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.KullaniciRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -256,5 +257,18 @@ class KullaniciServiceTest {
         assertThatThrownBy(() -> kullaniciService.login("ahmet@efsora.com", "wrong"))
                 .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessageContaining("Invalid email or password");
+    }
+
+    @Test
+    @DisplayName("Password change should fail when new password equals current password")
+    void sifreDegistir_ayniSifreReddedilir() {
+        when(kullaniciRepository.findByEmail("ahmet@efsora.com")).thenReturn(Optional.of(testKullanici));
+        when(passwordEncoder.matches("same-pass", testKullanici.getPassword())).thenReturn(true);
+
+        assertThatThrownBy(() -> kullaniciService.sifreDegistir("ahmet@efsora.com", "same-pass", "same-pass"))
+                .isInstanceOf(SamePasswordException.class)
+                .hasMessageContaining("different from current password");
+
+        verify(kullaniciRepository, never()).save(any(Kullanici.class));
     }
 }
