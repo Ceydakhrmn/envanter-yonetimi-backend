@@ -90,7 +90,7 @@ public class SecurityConfig {
                     "/swagger-ui.html",        // Swagger HTML
                     "/api/kullanicilar/health" // Health check
                 ).permitAll()
-                
+                .requestMatchers("/actuator/**").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
