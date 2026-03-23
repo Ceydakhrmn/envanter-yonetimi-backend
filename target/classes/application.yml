@@ -1,0 +1,10 @@
+jwt:
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/envanter_db
+    username: efsora_user
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update

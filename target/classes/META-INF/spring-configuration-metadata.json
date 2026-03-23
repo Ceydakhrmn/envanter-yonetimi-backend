@@ -1,0 +1,33 @@
+{
+  "groups": [
+    {
+      "name": "jwt",
+      "type": "com.example.demo.config.JwtProperties",
+      "sourceType": "com.example.demo.config.JwtProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "jwt.expiration",
+      "type": "java.lang.Long",
+      "description": "Access token expiration time in milliseconds",
+      "sourceType": "com.example.demo.config.JwtProperties"
+    },
+    {
+      "name": "jwt.refresh-expiration",
+      "type": "java.lang.Long",
+      "description": "Refresh token expiration time in milliseconds",
+      "sourceType": "com.example.demo.config.JwtProperties"
+    },
+    {
+      "name": "jwt.secret",
+      "type": "java.lang.String",
+      "description": "Secret key for JWT signing (minimum 256 bits)",
+      "sourceType": "com.example.demo.config.JwtProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}
