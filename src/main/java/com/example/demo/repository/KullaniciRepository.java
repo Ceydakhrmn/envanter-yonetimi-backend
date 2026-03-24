@@ -27,4 +27,7 @@ public interface KullaniciRepository extends JpaRepository<Kullanici, Long> {
 
     // Email existence check
     boolean existsByEmail(String email);
+
+    // Bulk delete by IDs
+    void deleteAllByIdIn(List<Long> ids);
 }

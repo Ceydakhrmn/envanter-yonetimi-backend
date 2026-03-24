@@ -8,6 +8,16 @@
   ],
   "properties": [
     {
+      "name": "app.backend-public-url",
+      "type": "java.lang.String",
+      "description": "Public backend URL used in OpenAPI server metadata."
+    },
+    {
+      "name": "app.cors.allowed-origins",
+      "type": "java.lang.String",
+      "description": "Comma-separated list of allowed CORS origins."
+    },
+    {
       "name": "jwt.expiration",
       "type": "java.lang.Long",
       "description": "Access token expiration time in milliseconds",

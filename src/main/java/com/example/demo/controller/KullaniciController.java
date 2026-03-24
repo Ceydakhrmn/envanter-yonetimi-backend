@@ -116,6 +116,21 @@ public class KullaniciController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Bulk delete users", description = "Deletes multiple users by their IDs (hard delete)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Users deleted successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
+    @PostMapping("/bulk-delete")
+    public ResponseEntity<Void> bulkDelete(@RequestBody List<Long> ids) {
+        log.info("API: Bulk deleting users: {}", ids);
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        service.kullanicilariTopluSil(ids);
+        return ResponseEntity.noContent().build();
+    }
+
     @Operation(summary = "Health check", description = "Checks if the User Management API is running")
     @ApiResponse(
         responseCode = "200",

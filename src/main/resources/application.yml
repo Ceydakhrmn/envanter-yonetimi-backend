@@ -1,10 +1,42 @@
-jwt:
 spring:
+  application:
+    name: EfsoraBackend
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/envanter_db
-    username: efsora_user
-    password: 1234
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/envanter_db}
+    username: ${SPRING_DATASOURCE_USERNAME:efsora_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234}
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+    port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  security:
+    enabled: false
+
+jwt:
+  secret: replace-this-dev-secret-with-env-value-please-1234567890
+  expiration: 86400000
+  refresh-expiration: 2592000000
+
+app:
+  backend-public-url: http://localhost:8080
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,http://localhost:3000

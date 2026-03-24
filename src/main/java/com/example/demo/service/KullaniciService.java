@@ -57,6 +57,15 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
         kullaniciSil(id);
     }
 
+    /**
+     * Bulk delete users by IDs (hard delete)
+     */
+    @Transactional
+    public void kullanicilariTopluSil(List<Long> ids) {
+        log.warn("Bulk deleting users: {}", ids);
+        kullaniciRepository.deleteAllByIdIn(ids);
+    }
+
     // ==================== Original Methods (kept for backward compatibility) ====================
 
     /**
