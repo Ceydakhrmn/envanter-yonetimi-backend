@@ -21,13 +21,15 @@
       "name": "jwt.expiration",
       "type": "java.lang.Long",
       "description": "Access token expiration time in milliseconds",
-      "sourceType": "com.example.demo.config.JwtProperties"
+      "sourceType": "com.example.demo.config.JwtProperties",
+      "defaultValue": 0
     },
     {
       "name": "jwt.refresh-expiration",
       "type": "java.lang.Long",
       "description": "Refresh token expiration time in milliseconds",
-      "sourceType": "com.example.demo.config.JwtProperties"
+      "sourceType": "com.example.demo.config.JwtProperties",
+      "defaultValue": 0
     },
     {
       "name": "jwt.secret",

@@ -17,7 +17,7 @@ import java.util.List;
 @Configuration
 public class SwaggerConfig {
 
-        @Value("${app.backend-public-url:http://localhost:8080}")
+        @Value("${app.backend-public-url:http://localhost:8081}")
         private String backendPublicUrl;
 
     @Bean

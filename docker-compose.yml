@@ -12,7 +12,29 @@ services:
       - ./postgres-data:/var/lib/postgresql/data
     networks:
       - efsora-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-efsora_user} -d ${POSTGRES_DB:-envanter_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context:              # ← Ana dizin, Dockerfile burada
+    container_name: efsora-backend
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-envanter_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-efsora_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - efsora-network
 
 networks:
   efsora-network:
     driver: bridge
+    

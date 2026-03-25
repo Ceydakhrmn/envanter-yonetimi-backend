@@ -14,4 +14,4 @@ COPY . .
 RUN ./mvnw clean package -DskipTests
 
 # Uygulamayı başlat (platformun verdiği PORT'u kullan)
-CMD ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar target/*.jar"]
+CMD ["sh", "-c", "java -Dserver.port=${PORT:-8081} -jar target/*.jar"]

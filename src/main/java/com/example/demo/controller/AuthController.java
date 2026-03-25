@@ -81,7 +81,7 @@ public class AuthController {
     })
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody KullaniciRequestDTO request) {
-        log.info("Registration attempt for email: {}", request.getEmail());
+        log.info("[REGISTER] Yeni kayıt isteği alındı. Request body: {}", request);
 
         // Check if email already exists
         if (kullaniciRepository.existsByEmail(request.getEmail())) {

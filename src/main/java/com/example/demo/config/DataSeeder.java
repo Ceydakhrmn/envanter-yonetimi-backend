@@ -72,7 +72,7 @@ public class DataSeeder {
             log.info("   - Sales: 2 users");
             log.info("   - Inactive: 1 user");
             log.info("🔐 Default password for all users: 'password123'");
-            log.info("🎯 Ready for testing! Visit http://localhost:8080/swagger-ui/index.html");
+            log.info("🎯 Ready for testing! Visit http://localhost:8081/swagger-ui/index.html");
         };
     }
 

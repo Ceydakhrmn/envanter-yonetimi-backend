@@ -79,29 +79,38 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> {})
-            .csrf(AbstractHttpConfigurer::disable)  // Disable CSRF for stateless JWT
+            .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints (no authentication required)
                 .requestMatchers(
-                    "/",                    // Root health check for hosting platforms
-                    "/api/auth/**",           // Auth endpoints (login, register)
-                    "/swagger-ui/**",          // Swagger UI
-                    "/v3/api-docs/**",         // OpenAPI docs
-                    "/swagger-ui.html",        // Swagger HTML
-                    "/api/kullanicilar/health" // Health check
+                    "/",
+                    "/api/auth/**",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html",
+                    "/api/kullanicilar/health"
                 ).permitAll()
                 .requestMatchers("/actuator/**").permitAll()
-                // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
-            // Stateless session (no session cookies)
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            // Add authentication provider
             .authenticationProvider(authenticationProvider())
-            // Add JWT filter before UsernamePasswordAuthenticationFilter
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint((request, response, authException) -> {
+                    System.out.println("[SECURITY] Authentication error: " + authException.getMessage());
+                    response.setStatus(401);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Authentication error: " + authException.getMessage() + "\"}");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    System.out.println("[SECURITY] Access denied: " + accessDeniedException.getMessage());
+                    response.setStatus(403);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Access denied: " + accessDeniedException.getMessage() + "\"}");
+                })
+            );
 
         return http.build();
     }
