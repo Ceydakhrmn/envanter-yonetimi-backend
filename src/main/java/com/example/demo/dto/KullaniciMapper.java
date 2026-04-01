@@ -26,6 +26,8 @@ public class KullaniciMapper {
 		dto.setDepartment(entity.getDepartment());
 		dto.setRegistrationDate(entity.getRegistrationDate());
 		dto.setActive(entity.getActive());
+		dto.setProfilePhoto(entity.getProfilePhoto());
+		dto.setLastLoginDate(entity.getLastLoginDate());
 		return dto;
 	}
 

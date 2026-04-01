@@ -164,9 +164,12 @@ public class AuthController {
         Kullanici kullanici = kullaniciRepository.findByEmail(userDetails.getUsername())
             .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        // Update last login date
+        kullanici.setLastLoginDate(LocalDateTime.now());
+        kullaniciRepository.save(kullanici);
+
         // Generate JWT token
         String token = jwtUtil.generateToken(userDetails);
-            
         // Generate refresh token
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(kullanici.getId());
 
@@ -182,6 +185,7 @@ public class AuthController {
             .firstName(kullanici.getFirstName())
             .lastName(kullanici.getLastName())
             .department(kullanici.getDepartment())
+            .lastLoginDate(kullanici.getLastLoginDate())
             .build();
 
         return ResponseEntity.ok(response);

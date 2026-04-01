@@ -41,4 +41,7 @@ public class AuthResponseDTO {
 
     @Schema(description = "User's department", example = "IT")
     private String department;
+
+    @Schema(description = "Last login date", example = "2026-04-01T10:00:00")
+    private java.time.LocalDateTime lastLoginDate;
 }

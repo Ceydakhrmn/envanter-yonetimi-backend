@@ -1,16 +1,16 @@
 logging:
   level:
-    root: DEBUG
+    root: INFO
+    com.example.demo: DEBUG
+
 spring:
   application:
     name: EfsoraBackend
-
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/envanter_db}
     username: ${SPRING_DATASOURCE_USERNAME:efsora_user}
     password: ${SPRING_DATASOURCE_PASSWORD:1234}
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -42,4 +42,4 @@ jwt:
 app:
   backend-public-url: http://localhost:8081
   cors:
-    allowed-origins: '*'
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173

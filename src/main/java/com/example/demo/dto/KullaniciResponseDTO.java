@@ -31,4 +31,10 @@ public class KullaniciResponseDTO {
 
     @Schema(description = "Indicates if user account is active", example = "true")
     private Boolean active;
+
+    @Schema(description = "User's profile photo (base64)", example = "data:image/jpeg;base64,...")
+    private String profilePhoto;
+
+    @Schema(description = "Last login date", example = "2026-04-01T10:00:00")
+    private java.time.LocalDateTime lastLoginDate;
 }

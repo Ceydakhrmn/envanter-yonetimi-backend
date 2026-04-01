@@ -40,8 +40,15 @@ public class Kullanici implements UserDetails {
     @Column(name = "registration_date")
     private LocalDateTime registrationDate;
 
+
     @Column(name = "active")
     private Boolean active = true;
+
+    @Column(name = "profile_photo", columnDefinition = "TEXT")
+    private String profilePhoto;
+
+    @Column(name = "last_login_date")
+    private LocalDateTime lastLoginDate;
 
     // ==================== UserDetails Implementation ====================
 

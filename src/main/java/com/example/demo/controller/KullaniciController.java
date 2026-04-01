@@ -225,4 +225,17 @@ public class KullaniciController {
                 .message("Password changed successfully")
                 .build());
     }
+
+    @Operation(summary = "Upload profile photo", description = "Uploads base64 encoded profile photo")
+    @PostMapping("/{id}/photo")
+    public ResponseEntity<KullaniciResponseDTO> uploadPhoto(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        log.info("API: Uploading photo for user ID={}", id);
+        String base64Photo = body.get("photo");
+        Kullanici kullanici = service.kullaniciBul(id);
+        kullanici.setProfilePhoto(base64Photo);
+        Kullanici updated = service.kullaniciGuncelle(id, kullanici);
+        return ResponseEntity.ok(mapper.toResponseDTO(updated));
+    }
 }
