@@ -28,6 +28,7 @@ public class KullaniciMapper {
 		dto.setActive(entity.getActive());
 		dto.setProfilePhoto(entity.getProfilePhoto());
 		dto.setLastLoginDate(entity.getLastLoginDate());
+		dto.setRole(entity.getRole() != null ? entity.getRole().name() : "USER");
 		return dto;
 	}
 
@@ -52,6 +53,15 @@ public class KullaniciMapper {
 		entity.setPassword(passwordEncoder.encode(dto.getPassword()));
 		entity.setRegistrationDate(LocalDateTime.now());
 		entity.setActive(true);
+		if (dto.getRole() != null && !dto.getRole().isEmpty()) {
+			try {
+				entity.setRole(Kullanici.Role.valueOf(dto.getRole()));
+			} catch (IllegalArgumentException e) {
+				entity.setRole(Kullanici.Role.USER);
+			}
+		} else {
+			entity.setRole(Kullanici.Role.USER);
+		}
 		return entity;
 	}
 
@@ -65,6 +75,13 @@ public class KullaniciMapper {
 		entity.setDepartment(dto.getDepartment());
 		if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
 			entity.setPassword(passwordEncoder.encode(dto.getPassword()));
+		}
+		if (dto.getRole() != null && !dto.getRole().isEmpty()) {
+			try {
+				entity.setRole(Kullanici.Role.valueOf(dto.getRole()));
+			} catch (IllegalArgumentException e) {
+				entity.setRole(Kullanici.Role.USER);
+			}
 		}
 	}
 }

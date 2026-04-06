@@ -96,7 +96,9 @@ public class AuthController {
         kullanici.setEmail(request.getEmail());
         kullanici.setPassword(passwordEncoder.encode(request.getPassword()));
         kullanici.setDepartment(request.getDepartment());
-        kullanici.setRegistrationDate(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        kullanici.setRegistrationDate(now);
+        kullanici.setLastLoginDate(now);
         kullanici.setActive(true);
 
         // Save to database

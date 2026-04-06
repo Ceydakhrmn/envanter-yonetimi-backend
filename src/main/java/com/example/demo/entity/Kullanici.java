@@ -50,15 +50,23 @@ public class Kullanici implements UserDetails {
     @Column(name = "last_login_date")
     private LocalDateTime lastLoginDate;
 
+    @Column(name = "role")
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.USER;
+
+    public enum Role {
+        ADMIN, USER, EDITOR
+    }
+
     // ==================== UserDetails Implementation ====================
 
     /**
      * Returns the authorities (roles) granted to the user
-     * For now, all users have ROLE_USER
+     * Now returns the user's actual role
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + (role != null ? role.name() : "USER")));
     }
 
     /**

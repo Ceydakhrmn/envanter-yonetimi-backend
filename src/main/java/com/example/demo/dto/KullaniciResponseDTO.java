@@ -37,4 +37,7 @@ public class KullaniciResponseDTO {
 
     @Schema(description = "Last login date", example = "2026-04-01T10:00:00")
     private java.time.LocalDateTime lastLoginDate;
+
+    @Schema(description = "User's role", example = "USER")
+    private String role;
 }
