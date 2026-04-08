@@ -81,7 +81,14 @@ public class AuthController {
     })
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody KullaniciRequestDTO request) {
+
         log.info("[REGISTER] Yeni kayıt isteği alındı. Request body: {}", request);
+
+        // Email domain kontrolü
+        if (!request.getEmail().endsWith("@efsora.com")) {
+            log.warn("Registration failed: Only @efsora.com email addresses are allowed: {}", request.getEmail());
+            throw new EmailAlreadyExistsException("Only @efsora.com email addresses are allowed");
+        }
 
         // Check if email already exists
         if (kullaniciRepository.existsByEmail(request.getEmail())) {
