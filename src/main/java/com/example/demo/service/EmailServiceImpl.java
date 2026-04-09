@@ -16,26 +16,27 @@ public class EmailServiceImpl implements EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:}")
+    @Value("${app.mail.from:}")
     private String fromEmail;
 
     @Override
     public void sendInvitationEmail(String to, String subject, String body) {
         if (mailSender == null || fromEmail == null || fromEmail.isBlank()) {
-            log.warn("Mail gönderimi yapılandırılmamış. Davet emaili gönderilemedi: {}", to);
+            log.warn("Mail yapılandırılmamış. Email gönderilemedi: {}", to);
             return;
         }
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, true);
             mailSender.send(message);
+            log.info("Email gönderildi: {}", to);
         } catch (MessagingException e) {
-            log.error("Mail gönderilemedi: {}", e.getMessage());
-            throw new RuntimeException("Mail gönderilemedi", e);
+            log.error("Email gönderilemedi: {}", e.getMessage());
+            throw new RuntimeException("Email gönderilemedi", e);
         }
     }
 }
