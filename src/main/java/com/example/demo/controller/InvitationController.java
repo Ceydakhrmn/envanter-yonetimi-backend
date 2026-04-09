@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/invitations")
@@ -69,30 +70,22 @@ public class InvitationController {
     }
 
     @PostMapping("/accept/{token}")
-    public ResponseEntity<?> acceptInvitation(
-            @PathVariable String token,
-            @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> acceptInvitation(@PathVariable String token) {
         try {
             Invitation invitation = invitationService.findByToken(token);
             if (!invitationService.isValid(invitation)) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Invitation expired or already used"));
             }
 
-            String firstName = body.get("firstName");
-            String lastName = body.get("lastName");
-            String password = body.get("password");
-            String department = body.getOrDefault("department", "");
-
-            if (firstName == null || lastName == null || password == null) {
-                return ResponseEntity.badRequest().body(Map.of("message", "All fields are required"));
-            }
+            String email = invitation.getEmail();
+            String nameFromEmail = email.contains("@") ? email.split("@")[0] : email;
 
             Kullanici kullanici = new Kullanici();
-            kullanici.setFirstName(firstName);
-            kullanici.setLastName(lastName);
-            kullanici.setEmail(invitation.getEmail());
-            kullanici.setPassword(passwordEncoder.encode(password));
-            kullanici.setDepartment(department);
+            kullanici.setFirstName(nameFromEmail);
+            kullanici.setLastName("");
+            kullanici.setEmail(email);
+            kullanici.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+            kullanici.setDepartment("");
             kullanici.setRegistrationDate(LocalDateTime.now());
             kullanici.setActive(true);
             kullanici.setRole(Kullanici.Role.valueOf(invitation.getRole()));
