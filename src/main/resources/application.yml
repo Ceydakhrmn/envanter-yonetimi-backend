@@ -7,9 +7,9 @@ spring:
   application:
     name: EfsoraBackend
   mail:
-    host: ${SPRING_MAIL_HOST:smtp.resend.com}
+    host: ${SPRING_MAIL_HOST:}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:resend}
+    username: ${SPRING_MAIL_USERNAME:}
     password: ${SPRING_MAIL_PASSWORD:}
     properties:
       mail:
