@@ -44,6 +44,7 @@ public class KullaniciController {
     private final KullaniciMapper mapper;
     private final com.example.demo.service.ActivityLogService activityLogService;
     private final com.example.demo.security.JwtUtil jwtUtil;
+    private final com.example.demo.service.NotificationService notificationService;
 
     // ==================== CRUD Operations ====================
 
@@ -85,6 +86,7 @@ public class KullaniciController {
         Kullanici entity = mapper.toEntity(requestDTO);
         Kullanici created = service.kullaniciOlustur(entity);
         activityLogService.log("CREATE", "USER", created.getId(), "Kullanıcı oluşturuldu: " + created.getEmail());
+        notificationService.create("success", "Hesabınız oluşturuldu. Hoş geldiniz!", created.getEmail());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponseDTO(created));
     }
 
@@ -106,6 +108,7 @@ public class KullaniciController {
         mapper.updateEntityFromDTO(requestDTO, existingEntity);
         Kullanici updated = service.kullaniciGuncelle(id, existingEntity);
         activityLogService.log("UPDATE", "USER", id, "Kullanıcı güncellendi: " + updated.getEmail());
+        notificationService.create("info", "Profil bilgileriniz güncellendi.", updated.getEmail());
         return ResponseEntity.ok(mapper.toResponseDTO(updated));
     }
 
