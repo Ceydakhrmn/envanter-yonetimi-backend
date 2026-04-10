@@ -10,7 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +53,35 @@ public class AssetService {
 
     public List<AssetResponseDTO> search(String q) {
         return assetRepository.search(q).stream().map(AssetResponseDTO::from).toList();
+    }
+
+    public Map<String, Object> getStats() {
+        List<Asset> all = assetRepository.findAll();
+        Map<String, Object> stats = new HashMap<>();
+
+        stats.put("total", all.size());
+        stats.put("active", all.stream().filter(a -> a.getStatus() == Asset.Status.ACTIVE).count());
+        stats.put("maintenance", all.stream().filter(a -> a.getStatus() == Asset.Status.MAINTENANCE).count());
+        stats.put("expired", all.stream().filter(a -> a.getStatus() == Asset.Status.EXPIRED).count());
+        stats.put("retired", all.stream().filter(a -> a.getStatus() == Asset.Status.RETIRED).count());
+
+        Map<String, Long> byCategory = all.stream()
+                .collect(Collectors.groupingBy(a -> a.getCategory().name(), Collectors.counting()));
+        stats.put("byCategory", byCategory);
+
+        long expiringSoon = all.stream()
+                .filter(a -> a.getRenewalDate() != null && a.getStatus() == Asset.Status.ACTIVE
+                        && a.getRenewalDate().isBefore(LocalDate.now().plusDays(30)))
+                .count();
+        stats.put("expiringSoon", expiringSoon);
+
+        long totalValue = all.stream()
+                .filter(a -> a.getPurchasePrice() != null)
+                .mapToLong(a -> a.getPurchasePrice().longValue())
+                .sum();
+        stats.put("totalValue", totalValue);
+
+        return stats;
     }
 
     private Asset toEntity(AssetRequestDTO dto, Asset asset) {

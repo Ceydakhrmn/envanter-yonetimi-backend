@@ -128,6 +128,7 @@ public class AuthController {
                 .firstName(savedUser.getFirstName())
                 .lastName(savedUser.getLastName())
                 .department(savedUser.getDepartment())
+                .role(savedUser.getRole() != null ? savedUser.getRole().name() : "USER")
                 .build();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -194,6 +195,7 @@ public class AuthController {
             .firstName(kullanici.getFirstName())
             .lastName(kullanici.getLastName())
             .department(kullanici.getDepartment())
+            .role(kullanici.getRole() != null ? kullanici.getRole().name() : "USER")
             .lastLoginDate(kullanici.getLastLoginDate())
             .build();
 
@@ -271,6 +273,7 @@ public class AuthController {
             .firstName(kullanici.getFirstName())
             .lastName(kullanici.getLastName())
             .department(kullanici.getDepartment())
+            .role(kullanici.getRole() != null ? kullanici.getRole().name() : "USER")
             .build();
 
         return ResponseEntity.ok(response);

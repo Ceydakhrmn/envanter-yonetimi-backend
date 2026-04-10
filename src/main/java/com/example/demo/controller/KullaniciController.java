@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -71,6 +72,7 @@ public class KullaniciController {
         @ApiResponse(responseCode = "201", description = "User created successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<KullaniciResponseDTO> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -108,6 +110,7 @@ public class KullaniciController {
         @ApiResponse(responseCode = "204", description = "User deleted successfully"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @Parameter(description = "User ID", example = "1") @PathVariable Long id) {
@@ -121,6 +124,7 @@ public class KullaniciController {
         @ApiResponse(responseCode = "204", description = "Users deleted successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/bulk-delete")
     public ResponseEntity<Void> bulkDelete(@RequestBody List<Long> ids) {
         log.info("API: Bulk deleting users: {}", ids);
@@ -201,6 +205,7 @@ public class KullaniciController {
         @ApiResponse(responseCode = "204", description = "User permanently deleted"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}/permanent")
     public ResponseEntity<Void> kullaniciKaliciSil(
             @Parameter(description = "User ID", example = "1") @PathVariable Long id) {

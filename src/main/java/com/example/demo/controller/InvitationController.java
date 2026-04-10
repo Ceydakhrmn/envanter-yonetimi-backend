@@ -9,6 +9,7 @@ import com.example.demo.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +29,7 @@ public class InvitationController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<?> createInvitation(@RequestBody Map<String, String> body) {
         String email = body.get("email");
