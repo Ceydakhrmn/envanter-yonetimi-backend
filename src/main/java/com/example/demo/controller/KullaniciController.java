@@ -42,6 +42,7 @@ public class KullaniciController {
 
     private final KullaniciService service;
     private final KullaniciMapper mapper;
+    private final com.example.demo.service.ActivityLogService activityLogService;
 
     // ==================== CRUD Operations ====================
 
@@ -82,6 +83,7 @@ public class KullaniciController {
         log.info("API: Creating new user");
         Kullanici entity = mapper.toEntity(requestDTO);
         Kullanici created = service.kullaniciOlustur(entity);
+        activityLogService.log("CREATE", "USER", created.getId(), "Kullanıcı oluşturuldu: " + created.getEmail());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponseDTO(created));
     }
 
@@ -102,6 +104,7 @@ public class KullaniciController {
         Kullanici existingEntity = service.kullaniciBul(id);
         mapper.updateEntityFromDTO(requestDTO, existingEntity);
         Kullanici updated = service.kullaniciGuncelle(id, existingEntity);
+        activityLogService.log("UPDATE", "USER", id, "Kullanıcı güncellendi: " + updated.getEmail());
         return ResponseEntity.ok(mapper.toResponseDTO(updated));
     }
 
@@ -116,6 +119,7 @@ public class KullaniciController {
             @Parameter(description = "User ID", example = "1") @PathVariable Long id) {
         log.info("API: Deleting user with ID={}", id);
         service.kullaniciSil(id);
+        activityLogService.log("DELETE", "USER", id, "Kullanıcı silindi (soft)");
         return ResponseEntity.noContent().build();
     }
 
@@ -132,6 +136,7 @@ public class KullaniciController {
             return ResponseEntity.badRequest().build();
         }
         service.kullanicilariTopluSil(ids);
+        activityLogService.log("BULK_DELETE", "USER", null, "Toplu silme: " + ids.size() + " kullanıcı");
         return ResponseEntity.noContent().build();
     }
 
@@ -211,6 +216,7 @@ public class KullaniciController {
             @Parameter(description = "User ID", example = "1") @PathVariable Long id) {
         log.warn("API: Permanently deleting user ID={}", id);
         service.kullaniciKaliciSil(id);
+        activityLogService.log("PERMANENT_DELETE", "USER", id, "Kullanıcı kalıcı silindi");
         return ResponseEntity.noContent().build();
     }
 
