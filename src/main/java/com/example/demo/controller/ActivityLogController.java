@@ -39,4 +39,10 @@ public class ActivityLogController {
     public ResponseEntity<List<ActivityLog>> getByEntityType(@PathVariable String type) {
         return ResponseEntity.ok(activityLogService.getByEntityType(type));
     }
+
+    @GetMapping("/security-stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<java.util.Map<String, Object>> getSecurityStats() {
+        return ResponseEntity.ok(activityLogService.getSecurityStats());
+    }
 }

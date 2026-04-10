@@ -54,6 +54,15 @@ public class Kullanici implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role = Role.USER;
 
+    @Column(name = "failed_login_attempts")
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "lock_expires_at")
+    private LocalDateTime lockExpiresAt;
+
+    @Column(name = "password_changed_at")
+    private LocalDateTime passwordChangedAt;
+
     public enum Role {
         ADMIN, USER, EDITOR
     }
@@ -101,7 +110,14 @@ public class Kullanici implements UserDetails {
      */
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        if (lockExpiresAt == null) return true;
+        if (lockExpiresAt.isBefore(LocalDateTime.now())) {
+            // Kilit süresi doldu, otomatik aç
+            lockExpiresAt = null;
+            failedLoginAttempts = 0;
+            return true;
+        }
+        return false;
     }
 
     /**

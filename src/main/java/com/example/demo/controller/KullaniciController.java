@@ -43,6 +43,7 @@ public class KullaniciController {
     private final KullaniciService service;
     private final KullaniciMapper mapper;
     private final com.example.demo.service.ActivityLogService activityLogService;
+    private final com.example.demo.security.JwtUtil jwtUtil;
 
     // ==================== CRUD Operations ====================
 
@@ -248,5 +249,41 @@ public class KullaniciController {
         kullanici.setProfilePhoto(base64Photo);
         Kullanici updated = service.kullaniciGuncelle(id, kullanici);
         return ResponseEntity.ok(mapper.toResponseDTO(updated));
+    }
+
+    @Operation(summary = "Impersonate user", description = "Admin generates a temporary JWT for another user to debug issues")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Impersonation token generated"),
+        @ApiResponse(responseCode = "403", description = "Only admins can impersonate"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{id}/impersonate")
+    public ResponseEntity<com.example.demo.dto.AuthResponseDTO> impersonate(
+            @Parameter(description = "Target user ID") @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails adminUser) {
+        log.warn("API: Admin {} impersonating user ID={}", adminUser.getUsername(), id);
+        Kullanici target = service.kullaniciBul(id);
+
+        // Impersonation claim ekle
+        java.util.Map<String, Object> claims = new java.util.HashMap<>();
+        claims.put("impersonatedBy", adminUser.getUsername());
+        claims.put("isImpersonation", true);
+        String token = jwtUtil.generateToken(target, claims);
+
+        activityLogService.log("IMPERSONATE", "USER", id, "Admin " + adminUser.getUsername() + " kullanıcı " + target.getEmail() + " olarak giriş yaptı");
+
+        com.example.demo.dto.AuthResponseDTO response = com.example.demo.dto.AuthResponseDTO.builder()
+            .token(token)
+            .type("Bearer")
+            .id(target.getId())
+            .email(target.getEmail())
+            .firstName(target.getFirstName())
+            .lastName(target.getLastName())
+            .department(target.getDepartment())
+            .role(target.getRole() != null ? target.getRole().name() : "USER")
+            .build();
+
+        return ResponseEntity.ok(response);
     }
 }

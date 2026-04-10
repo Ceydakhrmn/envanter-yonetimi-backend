@@ -32,6 +32,12 @@ public class ActivityLog {
     @Column(name = "user_name")
     private String userName;
 
+    @Column(name = "ip_address")
+    private String ipAddress;
+
+    @Column(name = "user_agent", columnDefinition = "TEXT")
+    private String userAgent;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

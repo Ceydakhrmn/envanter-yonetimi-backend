@@ -55,6 +55,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final PasswordResetService passwordResetService;
+    private final com.example.demo.service.ActivityLogService activityLogService;
 
     /**
      * User Registration
@@ -158,48 +159,85 @@ public class AuthController {
         )
     })
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO request) {
         log.info("Login attempt for email: {}", request.getEmail());
 
-        // Authenticate user
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                request.getEmail(),
-                request.getPassword()
-            )
-        );
+        // Account lockout kontrolü
+        var optionalUser = kullaniciRepository.findByEmail(request.getEmail());
+        if (optionalUser.isPresent()) {
+            Kullanici k = optionalUser.get();
+            if (k.getLockExpiresAt() != null && k.getLockExpiresAt().isAfter(LocalDateTime.now())) {
+                long minutesLeft = java.time.Duration.between(LocalDateTime.now(), k.getLockExpiresAt()).toMinutes() + 1;
+                activityLogService.log("LOGIN_BLOCKED", "AUTH", k.getId(), "Hesap kilitli. " + minutesLeft + " dk kaldı. Email: " + request.getEmail());
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(java.util.Map.of("message", "Account is locked. Try again in " + minutesLeft + " minutes.", "lockedUntil", k.getLockExpiresAt().toString()));
+            }
+        }
 
-        // Get authenticated user
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        Kullanici kullanici = kullaniciRepository.findByEmail(userDetails.getUsername())
-            .orElseThrow(() -> new UserNotFoundException("User not found"));
+        try {
+            // Authenticate user
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    request.getEmail(),
+                    request.getPassword()
+                )
+            );
 
-        // Update last login date
-        kullanici.setLastLoginDate(LocalDateTime.now());
-        kullaniciRepository.save(kullanici);
+            // Get authenticated user
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            Kullanici kullanici = kullaniciRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(userDetails);
-        // Generate refresh token
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(kullanici.getId());
+            // Başarılı giriş: lockout alanlarını sıfırla
+            kullanici.setFailedLoginAttempts(0);
+            kullanici.setLockExpiresAt(null);
+            kullanici.setLastLoginDate(LocalDateTime.now());
+            kullaniciRepository.save(kullanici);
 
-        log.info("Login successful for user: {}", kullanici.getEmail());
+            // Generate JWT token
+            String token = jwtUtil.generateToken(userDetails);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(kullanici.getId());
 
-        // Build response
-        AuthResponseDTO response = AuthResponseDTO.builder()
-            .token(token)
-            .type("Bearer")
-            .refreshToken(refreshToken.getToken())
-            .id(kullanici.getId())
-            .email(kullanici.getEmail())
-            .firstName(kullanici.getFirstName())
-            .lastName(kullanici.getLastName())
-            .department(kullanici.getDepartment())
-            .role(kullanici.getRole() != null ? kullanici.getRole().name() : "USER")
-            .lastLoginDate(kullanici.getLastLoginDate())
-            .build();
+            log.info("Login successful for user: {}", kullanici.getEmail());
+            activityLogService.log("LOGIN", "AUTH", kullanici.getId(), "Başarılı giriş: " + kullanici.getEmail());
 
-        return ResponseEntity.ok(response);
+            // Şifre süresi kontrolü (90 gün)
+            boolean passwordExpired = false;
+            if (kullanici.getPasswordChangedAt() != null) {
+                passwordExpired = kullanici.getPasswordChangedAt().plusDays(90).isBefore(LocalDateTime.now());
+            }
+
+            AuthResponseDTO response = AuthResponseDTO.builder()
+                .token(token)
+                .type("Bearer")
+                .refreshToken(refreshToken.getToken())
+                .id(kullanici.getId())
+                .email(kullanici.getEmail())
+                .firstName(kullanici.getFirstName())
+                .lastName(kullanici.getLastName())
+                .department(kullanici.getDepartment())
+                .role(kullanici.getRole() != null ? kullanici.getRole().name() : "USER")
+                .lastLoginDate(kullanici.getLastLoginDate())
+                .passwordExpired(passwordExpired)
+                .build();
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            // Başarısız giriş: sayacı artır
+            optionalUser.ifPresent(k -> {
+                int attempts = (k.getFailedLoginAttempts() == null ? 0 : k.getFailedLoginAttempts()) + 1;
+                k.setFailedLoginAttempts(attempts);
+                if (attempts >= 5) {
+                    k.setLockExpiresAt(LocalDateTime.now().plusMinutes(15));
+                    log.warn("Account locked for 15 minutes: {}", request.getEmail());
+                    activityLogService.log("ACCOUNT_LOCKED", "AUTH", k.getId(), "5 başarısız giriş - hesap 15 dk kilitlendi. Email: " + request.getEmail());
+                } else {
+                    activityLogService.log("LOGIN_FAILED", "AUTH", k.getId(), "Başarısız giriş denemesi (" + attempts + "/5). Email: " + request.getEmail());
+                }
+                kullaniciRepository.save(k);
+            });
+            throw e;
+        }
     }
 
     /**

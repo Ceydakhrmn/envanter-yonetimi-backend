@@ -213,6 +213,7 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
         }
 
         kullanici.setPassword(passwordEncoder.encode(newPassword));
+        kullanici.setPasswordChangedAt(java.time.LocalDateTime.now());
         kullaniciRepository.save(kullanici);
         log.info("Password changed successfully: {}", email);
     }
