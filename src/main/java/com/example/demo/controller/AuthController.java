@@ -37,6 +37,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * Authentication Controller
@@ -58,81 +59,13 @@ public class AuthController {
     private final com.example.demo.service.ActivityLogService activityLogService;
 
     /**
-     * User Registration
-     * Creates a new user account
+     * Public registration is disabled.
+     * Users can only join via admin invitation.
      */
-    @Operation(summary = "Register new user", description = "Creates a new user account and returns JWT token")
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "201", 
-            description = "User registered successfully",
-            content = @Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = @Schema(implementation = AuthResponseDTO.class)
-            )
-        ),
-        @ApiResponse(
-            responseCode = "400", 
-            description = "Invalid input or email already exists",
-            content = @Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = @Schema(implementation = ErrorResponseDTO.class)
-            )
-        )
-    })
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody KullaniciRequestDTO request) {
-
-        log.info("[REGISTER] Yeni kayıt isteği alındı. Request body: {}", request);
-
-        // Email domain kontrolü
-        if (!request.getEmail().endsWith("@efsora.com")) {
-            log.warn("Registration failed: Only @efsora.com email addresses are allowed: {}", request.getEmail());
-            throw new EmailAlreadyExistsException("Only @efsora.com email addresses are allowed");
-        }
-
-        // Check if email already exists
-        if (kullaniciRepository.existsByEmail(request.getEmail())) {
-            log.warn("Registration failed: Email already exists: {}", request.getEmail());
-            throw new EmailAlreadyExistsException("Email already registered: " + request.getEmail());
-        }
-
-        // Create new user
-        Kullanici kullanici = new Kullanici();
-        kullanici.setFirstName(request.getFirstName());
-        kullanici.setLastName(request.getLastName());
-        kullanici.setEmail(request.getEmail());
-        kullanici.setPassword(passwordEncoder.encode(request.getPassword()));
-        kullanici.setDepartment(request.getDepartment());
-        LocalDateTime now = LocalDateTime.now();
-        kullanici.setRegistrationDate(now);
-        kullanici.setLastLoginDate(now);
-        kullanici.setActive(true);
-
-        // Save to database
-        Kullanici savedUser = kullaniciRepository.save(kullanici);
-        log.info("User registered successfully: {}", savedUser.getEmail());
-
-        // Generate JWT token
-        String token = jwtUtil.generateToken(savedUser);
-        
-        // Generate refresh token
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(savedUser.getId());
-
-        // Build response
-        AuthResponseDTO response = AuthResponseDTO.builder()
-                .token(token)
-                .type("Bearer")
-                .refreshToken(refreshToken.getToken())
-                .id(savedUser.getId())
-                .email(savedUser.getEmail())
-                .firstName(savedUser.getFirstName())
-                .lastName(savedUser.getLastName())
-                .department(savedUser.getDepartment())
-                .role(savedUser.getRole() != null ? savedUser.getRole().name() : "USER")
-                .build();
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<?> register() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "Public registration is disabled. Please use an invitation link."));
     }
 
     /**

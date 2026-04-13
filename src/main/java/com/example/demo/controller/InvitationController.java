@@ -72,7 +72,7 @@ public class InvitationController {
     }
 
     @PostMapping("/accept/{token}")
-    public ResponseEntity<?> acceptInvitation(@PathVariable String token) {
+    public ResponseEntity<?> acceptInvitation(@PathVariable String token, @RequestBody Map<String, String> body) {
         try {
             Invitation invitation = invitationService.findByToken(token);
             if (!invitationService.isValid(invitation)) {
@@ -80,13 +80,22 @@ public class InvitationController {
             }
 
             String email = invitation.getEmail();
-            String nameFromEmail = email.contains("@") ? email.split("@")[0] : email;
+
+            String firstName = body.get("firstName");
+            String lastName = body.get("lastName");
+            String password = body.get("password");
+
+            if (firstName == null || firstName.isBlank() || lastName == null || lastName.isBlank()
+                    || password == null || password.length() < 6) {
+                return ResponseEntity.badRequest().body(Map.of("message",
+                        "firstName, lastName and password (min 6 chars) are required"));
+            }
 
             Kullanici kullanici = new Kullanici();
-            kullanici.setFirstName(nameFromEmail);
-            kullanici.setLastName("");
+            kullanici.setFirstName(firstName.trim());
+            kullanici.setLastName(lastName.trim());
             kullanici.setEmail(email);
-            kullanici.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+            kullanici.setPassword(passwordEncoder.encode(password));
             kullanici.setDepartment("");
             kullanici.setRegistrationDate(LocalDateTime.now());
             kullanici.setActive(true);
