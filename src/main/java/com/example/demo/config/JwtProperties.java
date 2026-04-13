@@ -1,30 +1,28 @@
 package com.example.demo.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * JWT Configuration Properties
- * Maps jwt.* values from Spring configuration (application.yml / env vars)
- */
 @Configuration
 @ConfigurationProperties(prefix = "jwt")
 @Data
+@Slf4j
 public class JwtProperties {
 
-    /**
-     * Secret key for JWT signing (minimum 256 bits)
-     */
     private String secret;
-
-    /**
-     * Access token expiration time in milliseconds
-     */
     private long expiration;
-
-    /**
-     * Refresh token expiration time in milliseconds
-     */
     private long refreshExpiration;
+
+    @PostConstruct
+    public void validateSecret() {
+        if (secret == null || secret.isBlank() || secret.contains("default-dev-secret")) {
+            log.warn("⚠️  JWT secret is using default value! Set JWT_SECRET environment variable in production.");
+        }
+        if (secret != null && secret.length() < 32) {
+            log.warn("⚠️  JWT secret is too short ({}). Use at least 32 characters.", secret.length());
+        }
+    }
 }

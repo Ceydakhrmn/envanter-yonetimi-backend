@@ -50,9 +50,9 @@ management:
     enabled: false
 
 jwt:
-  secret: replace-this-dev-secret-with-env-value-please-1234567890
-  expiration: 86400000
-  refresh-expiration: 2592000000
+  secret: ${JWT_SECRET:default-dev-secret-change-me-in-production-min-64-chars-long-1234567890abcdef}
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:2592000000}
 
 app:
   backend-public-url: http://localhost:8081

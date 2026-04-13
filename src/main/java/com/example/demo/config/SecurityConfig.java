@@ -80,6 +80,14 @@ public class SecurityConfig {
         http
             .cors(cors -> {})
             .csrf(AbstractHttpConfigurer::disable)
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.deny())
+                .contentTypeOptions(content -> {})
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000))
+                .cacheControl(cache -> {})
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/",
@@ -127,7 +135,8 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(originList);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        configuration.setExposedHeaders(List.of("Set-Cookie"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

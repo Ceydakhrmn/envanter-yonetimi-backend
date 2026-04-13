@@ -86,9 +86,15 @@ public class InvitationController {
             String password = body.get("password");
 
             if (firstName == null || firstName.isBlank() || lastName == null || lastName.isBlank()
-                    || password == null || password.length() < 6) {
+                    || password == null || password.length() < 8) {
                 return ResponseEntity.badRequest().body(Map.of("message",
-                        "firstName, lastName and password (min 6 chars) are required"));
+                        "firstName, lastName and password (min 8 chars) are required"));
+            }
+
+            // Password strength validation
+            if (!password.matches("^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,}$")) {
+                return ResponseEntity.badRequest().body(Map.of("message",
+                        "Password must contain at least 1 uppercase letter, 1 number, and 1 special character"));
             }
 
             Kullanici kullanici = new Kullanici();

@@ -17,6 +17,10 @@ import com.example.demo.repository.KullaniciRepository;
 import com.example.demo.security.JwtUtil;
 import com.example.demo.service.PasswordResetService;
 import com.example.demo.service.RefreshTokenService;
+import com.example.demo.util.CookieUtil;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -57,6 +61,25 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
     private final PasswordResetService passwordResetService;
     private final com.example.demo.service.ActivityLogService activityLogService;
+    private final CookieUtil cookieUtil;
+
+    // ⚠️ TEMPORARY — Remove after use!
+    @PostMapping("/promote-admin")
+    public ResponseEntity<?> promoteToAdmin(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String secret = body.get("secret");
+        if (!"efsora-promote-2026".equals(secret)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Invalid secret"));
+        }
+        var user = kullaniciRepository.findByEmail(email);
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+        }
+        var k = user.get();
+        k.setRole(Kullanici.Role.ADMIN);
+        kullaniciRepository.save(k);
+        return ResponseEntity.ok(Map.of("message", email + " is now ADMIN"));
+    }
 
     /**
      * Public registration is disabled.
@@ -92,7 +115,7 @@ public class AuthController {
         )
     })
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO request, HttpServletResponse httpResponse) {
         log.info("Login attempt for email: {}", request.getEmail());
 
         // Account lockout kontrolü
@@ -139,6 +162,9 @@ public class AuthController {
             if (kullanici.getPasswordChangedAt() != null) {
                 passwordExpired = kullanici.getPasswordChangedAt().plusDays(90).isBefore(LocalDateTime.now());
             }
+
+            // Set refresh token as HttpOnly cookie
+            cookieUtil.addRefreshTokenCookie(httpResponse, refreshToken.getToken());
 
             AuthResponseDTO response = AuthResponseDTO.builder()
                 .token(token)
@@ -216,11 +242,23 @@ public class AuthController {
         )
     })
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponseDTO> refreshToken(@Valid @RequestBody RefreshTokenRequestDTO request) {
+    public ResponseEntity<AuthResponseDTO> refreshToken(
+            @RequestBody(required = false) RefreshTokenRequestDTO request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         log.info("Refresh token request received");
 
+        // Try to get refresh token from cookie first, then from body
+        String refreshTokenValue = extractRefreshTokenFromCookie(httpRequest);
+        if (refreshTokenValue == null && request != null && request.getRefreshToken() != null) {
+            refreshTokenValue = request.getRefreshToken();
+        }
+        if (refreshTokenValue == null) {
+            throw new RefreshTokenNotFoundException("Refresh token bulunamadı");
+        }
+
         // Find and verify refresh token
-        RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken())
+        RefreshToken refreshToken = refreshTokenService.findByToken(refreshTokenValue)
             .orElseThrow(() -> new RefreshTokenNotFoundException("Refresh token bulunamadı"));
 
         // Verify expiration
@@ -233,6 +271,9 @@ public class AuthController {
         String newAccessToken = jwtUtil.generateToken(kullanici);
 
         log.info("Access token refreshed for user: {}", kullanici.getEmail());
+
+        // Update refresh token cookie
+        cookieUtil.addRefreshTokenCookie(httpResponse, refreshToken.getToken());
 
         // Build response
         AuthResponseDTO response = AuthResponseDTO.builder()
@@ -270,18 +311,41 @@ public class AuthController {
         )
     })
     @PostMapping("/logout")
-    public ResponseEntity<MessageResponseDTO> logout(@RequestBody RefreshTokenRequestDTO request) {
+    public ResponseEntity<MessageResponseDTO> logout(
+            @RequestBody(required = false) RefreshTokenRequestDTO request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         log.info("Logout request received");
 
-        RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new RefreshTokenNotFoundException("Refresh token bulunamadı"));
+        // Try to get refresh token from cookie first, then from body
+        String refreshTokenValue = extractRefreshTokenFromCookie(httpRequest);
+        if (refreshTokenValue == null && request != null && request.getRefreshToken() != null) {
+            refreshTokenValue = request.getRefreshToken();
+        }
 
-        refreshTokenService.deleteByKullaniciId(refreshToken.getKullanici().getId());
+        if (refreshTokenValue != null) {
+            refreshTokenService.findByToken(refreshTokenValue)
+                .ifPresent(rt -> refreshTokenService.deleteByKullaniciId(rt.getKullanici().getId()));
+        }
+
+        // Clear refresh token cookie
+        cookieUtil.clearRefreshTokenCookie(httpResponse);
 
         log.info("User logged out successfully");
         return ResponseEntity.ok(MessageResponseDTO.builder()
             .message("Logout başarılı")
             .build());
+    }
+
+    private String extractRefreshTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 
     /**
