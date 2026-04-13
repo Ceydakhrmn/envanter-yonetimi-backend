@@ -63,24 +63,6 @@ public class AuthController {
     private final com.example.demo.service.ActivityLogService activityLogService;
     private final CookieUtil cookieUtil;
 
-    // ⚠️ TEMPORARY — Remove after use!
-    @PostMapping("/promote-admin")
-    public ResponseEntity<?> promoteToAdmin(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        String secret = body.get("secret");
-        if (!"efsora-promote-2026".equals(secret)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Invalid secret"));
-        }
-        var user = kullaniciRepository.findByEmail(email);
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
-        }
-        var k = user.get();
-        k.setRole(Kullanici.Role.ADMIN);
-        kullaniciRepository.save(k);
-        return ResponseEntity.ok(Map.of("message", email + " is now ADMIN"));
-    }
-
     /**
      * Public registration is disabled.
      * Users can only join via admin invitation.
