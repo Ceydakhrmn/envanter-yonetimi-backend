@@ -289,4 +289,35 @@ public class KullaniciController {
 
         return ResponseEntity.ok(response);
     }
+
+    @Operation(summary = "Bulk import users", description = "Creates multiple users from a list (CSV import)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed"),
+        @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/bulk-import")
+    public ResponseEntity<java.util.Map<String, Object>> bulkImport(@RequestBody List<KullaniciRequestDTO> users) {
+        log.info("API: Bulk importing {} users", users.size());
+        if (users == null || users.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        List<com.example.demo.entity.Kullanici> entities = users.stream().map(dto -> {
+            com.example.demo.entity.Kullanici k = mapper.toEntity(dto);
+            return k;
+        }).toList();
+
+        List<java.util.Map<String, Object>> results = service.topluKullaniciEkle(entities);
+        long success = results.stream().filter(r -> "success".equals(r.get("status"))).count();
+        long failed = results.stream().filter(r -> "error".equals(r.get("status"))).count();
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("total", users.size());
+        response.put("success", success);
+        response.put("failed", failed);
+        response.put("results", results);
+
+        activityLogService.log("BULK_IMPORT", "USER", null, "Toplu içe aktarma: " + success + " başarılı, " + failed + " başarısız");
+        return ResponseEntity.ok(response);
+    }
 }

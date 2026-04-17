@@ -58,6 +58,29 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
     }
 
     /**
+     * Bulk import users from list
+     */
+    @Transactional
+    public List<java.util.Map<String, Object>> topluKullaniciEkle(List<Kullanici> kullanicilar) {
+        List<java.util.Map<String, Object>> results = new java.util.ArrayList<>();
+        int row = 1;
+        for (Kullanici k : kullanicilar) {
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("row", row++);
+            result.put("email", k.getEmail());
+            try {
+                kullaniciOlustur(k);
+                result.put("status", "success");
+            } catch (Exception e) {
+                result.put("status", "error");
+                result.put("message", e.getMessage());
+            }
+            results.add(result);
+        }
+        return results;
+    }
+
+    /**
      * Bulk delete users by IDs (hard delete)
      */
     @Transactional
