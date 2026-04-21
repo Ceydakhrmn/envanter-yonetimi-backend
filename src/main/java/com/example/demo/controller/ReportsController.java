@@ -92,7 +92,7 @@ public class ReportsController {
         Map<String, Long> byCategory = all.stream()
                 .collect(Collectors.groupingBy(a -> a.getCategory().name(), Collectors.counting()));
 
-        long assigned = all.stream().filter(a -> a.getAssignedUserId() != null).count();
+        long assigned = all.stream().filter(a -> a.getAssignedUser() != null).count();
         long expiringSoon = all.stream()
                 .filter(a -> a.getRenewalDate() != null
                         && a.getStatus() == Asset.Status.ACTIVE
