@@ -92,6 +92,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/",
                     "/api/auth/**",
+                    "/api/health/**",
                     "/api/invitations/verify/**",
                     "/api/invitations/accept/**",
                     "/swagger-ui/**",
