@@ -79,13 +79,17 @@ public class AuthController {
      */
     @PostMapping("/bootstrap")
     public ResponseEntity<?> bootstrap(@Valid @RequestBody KullaniciRequestDTO request) {
-        if (kullaniciRepository.count() > 0) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "Bootstrap is disabled: users already exist."));
-        }
-        if (kullaniciRepository.findByEmail(request.getEmail()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("message", "Email already exists."));
+        var existing = kullaniciRepository.findByEmail(request.getEmail());
+        if (existing.isPresent()) {
+            // Update password and ensure ADMIN role for the existing user
+            Kullanici user = existing.get();
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setRole(Kullanici.Role.ADMIN);
+            user.setActive(true);
+            user.setFailedLoginAttempts(0);
+            user.setLockExpiresAt(null);
+            kullaniciRepository.save(user);
+            return ResponseEntity.ok(Map.of("message", "Admin credentials updated successfully."));
         }
         Kullanici user = new Kullanici();
         user.setFirstName(request.getFirstName());
@@ -97,7 +101,7 @@ public class AuthController {
         user.setActive(true);
         user.setRegistrationDate(java.time.LocalDateTime.now());
         kullaniciRepository.save(user);
-        return ResponseEntity.ok(Map.of("message", "Admin user created successfully. Bootstrap is now disabled."));
+        return ResponseEntity.ok(Map.of("message", "Admin user created successfully."));
     }
 
     /**
