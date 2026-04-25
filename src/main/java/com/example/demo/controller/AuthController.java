@@ -74,6 +74,33 @@ public class AuthController {
     }
 
     /**
+     * Creates the first ADMIN user only when no users exist in the database.
+     * Once any user exists, this endpoint returns 403.
+     */
+    @PostMapping("/bootstrap")
+    public ResponseEntity<?> bootstrap(@Valid @RequestBody KullaniciRequestDTO request) {
+        if (kullaniciRepository.count() > 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Bootstrap is disabled: users already exist."));
+        }
+        if (kullaniciRepository.findByEmail(request.getEmail()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "Email already exists."));
+        }
+        Kullanici user = new Kullanici();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setDepartment(request.getDepartment() != null ? request.getDepartment() : "IT");
+        user.setRole(Kullanici.Role.ADMIN);
+        user.setActive(true);
+        user.setRegistrationDate(java.time.LocalDateTime.now());
+        kullaniciRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "Admin user created successfully. Bootstrap is now disabled."));
+    }
+
+    /**
      * User Login
      * Authenticates user and returns JWT token
      */
