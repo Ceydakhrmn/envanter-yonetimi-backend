@@ -27,6 +27,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.data.domain.Pageable;
+import com.example.demo.dto.PagedResponseDTO;
 
 /**
  * User Controller - REST API endpoints with DTO pattern
@@ -48,13 +50,41 @@ public class KullaniciController {
 
     // ==================== CRUD Operations ====================
 
-    @Operation(summary = "List all users", description = "Returns all users in the system")
+    @Operation(summary = "List all users", description = "Returns all users in the system with pagination support")
     @ApiResponse(responseCode = "200", description = "Success")
     @GetMapping
-    public ResponseEntity<List<KullaniciResponseDTO>> findAll() {
-        log.info("API: Listing all users");
-        List<Kullanici> entities = service.tumKullanicilar();
-        return ResponseEntity.ok(mapper.toResponseDTOList(entities));
+    public ResponseEntity<PagedResponseDTO<KullaniciResponseDTO>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("API: Listing all users - page: {}, size: {}", page, size);
+        List<Kullanici> allUsers = service.tumKullanicilar();
+        
+        // Simple in-memory pagination
+        int totalElements = allUsers.size();
+        int totalPages = (totalElements + size - 1) / size;
+        
+        // Validate page
+        if (page < 0) page = 0;
+        if (page >= totalPages && totalElements > 0) page = totalPages - 1;
+        
+        int start = page * size;
+        int end = Math.min(start + size, totalElements);
+        
+        List<KullaniciResponseDTO> pageContent = mapper.toResponseDTOList(
+            allUsers.subList(start, end)
+        );
+        
+        PagedResponseDTO<KullaniciResponseDTO> response = PagedResponseDTO.<KullaniciResponseDTO>builder()
+            .content(pageContent)
+            .currentPage(page)
+            .pageSize(size)
+            .totalElements(totalElements)
+            .totalPages(totalPages)
+            .hasNext(page < totalPages - 1)
+            .hasPrevious(page > 0)
+            .build();
+        
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Find user by ID", description = "Returns a specific user by their ID")

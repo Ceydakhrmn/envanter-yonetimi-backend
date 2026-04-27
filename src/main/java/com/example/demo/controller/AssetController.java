@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.AssetRequestDTO;
 import com.example.demo.dto.AssetResponseDTO;
+import com.example.demo.dto.PagedResponseDTO;
 import com.example.demo.entity.AssetAssignmentHistory;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.repository.AssetAssignmentHistoryRepository;
@@ -28,8 +29,35 @@ public class AssetController {
     private final AssetAssignmentHistoryRepository assignmentHistoryRepository;
 
     @GetMapping
-    public ResponseEntity<List<AssetResponseDTO>> getAll() {
-        return ResponseEntity.ok(assetService.getAll());
+    public ResponseEntity<PagedResponseDTO<AssetResponseDTO>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        List<AssetResponseDTO> allAssets = assetService.getAll();
+        
+        // Simple in-memory pagination
+        int totalElements = allAssets.size();
+        int totalPages = (totalElements + size - 1) / size;
+        
+        // Validate page
+        if (page < 0) page = 0;
+        if (page >= totalPages && totalElements > 0) page = totalPages - 1;
+        
+        int start = page * size;
+        int end = Math.min(start + size, totalElements);
+        
+        List<AssetResponseDTO> pageContent = allAssets.subList(start, end);
+        
+        PagedResponseDTO<AssetResponseDTO> response = PagedResponseDTO.<AssetResponseDTO>builder()
+            .content(pageContent)
+            .currentPage(page)
+            .pageSize(size)
+            .totalElements(totalElements)
+            .totalPages(totalPages)
+            .hasNext(page < totalPages - 1)
+            .hasPrevious(page > 0)
+            .build();
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
