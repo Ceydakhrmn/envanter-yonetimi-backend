@@ -129,9 +129,9 @@
 
 		<!-- Bucket4j Rate Limiting -->
 		<dependency>
-			<groupId>com.bucket4j</groupId>
-			<artifactId>bucket4j-core</artifactId>
-			<version>8.10.1</version>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>32.1.3-jre</version>
 		</dependency>
 	</dependencies>
 

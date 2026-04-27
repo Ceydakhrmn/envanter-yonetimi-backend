@@ -1,7 +1,6 @@
 package com.example.demo.security;
 
 import com.example.demo.config.RateLimiterConfig;
-import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Rate Limiting Filter
+ * Rate Limiting Filter using Google Guava RateLimiter
  * Applies rate limiting to incoming requests based on client IP and endpoint
  */
 @Component
@@ -47,29 +46,25 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String endpoint = request.getRequestURI();
 
         try {
-            ConsumptionProbe probe = rateLimiterConfig.resolveBucket(clientIp, endpoint)
-                    .tryConsumeAndReturnRemaining(1);
-
-            if (probe.isConsumed()) {
+            // Check if request is allowed
+            if (rateLimiterConfig.allowRequest(clientIp, endpoint)) {
                 // Request allowed
-                response.addHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
                 filterChain.doFilter(request, response);
             } else {
                 // Rate limit exceeded
-                long waitForRefill = probe.getRoundedSecondsToWait();
+                long waitTime = rateLimiterConfig.getWaitTimeSeconds(endpoint);
                 response.setStatus(429); // Too Many Requests
                 response.setContentType("application/json");
-                response.addHeader("Retry-After", String.valueOf(waitForRefill));
-                response.addHeader("X-Rate-Limit-Remaining", "0");
+                response.addHeader("Retry-After", String.valueOf(waitTime));
                 
                 String errorResponse = String.format(
                     "{\"error\": \"Rate limit exceeded\", \"retryAfter\": %d, \"message\": \"Please wait %d seconds before making another request\"}",
-                    waitForRefill,
-                    waitForRefill
+                    waitTime,
+                    waitTime
                 );
                 response.getWriter().write(errorResponse);
                 
-                log.warn("[RATE-LIMIT] Request denied for IP: {} Endpoint: {} Wait: {}s", clientIp, endpoint, waitForRefill);
+                log.warn("[RATE-LIMIT] Request denied for IP: {} Endpoint: {} Wait: {}s", clientIp, endpoint, waitTime);
             }
         } catch (Exception e) {
             log.error("[RATE-LIMIT] Error processing rate limit: {}", e.getMessage());

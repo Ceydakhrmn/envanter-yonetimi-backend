@@ -1,69 +1,66 @@
 package com.example.demo.config;
 
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Bucket4j;
-import io.github.bucket4j.Refill;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.util.concurrent.RateLimiter;
+import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Rate Limiter Configuration using Bucket4j
- * Manages API rate limits by endpoint
+ * Rate Limiter Configuration using Google Guava RateLimiter
+ * Manages API rate limits by endpoint using token bucket algorithm
  */
-@Configuration
+@Component
 public class RateLimiterConfig {
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Cache<String, RateLimiter> limiters = CacheBuilder.newBuilder()
+        .expireAfterAccess(1, TimeUnit.HOURS)
+        .maximumSize(10000)
+        .build();
 
     /**
-     * Get or create a bucket for the given key
-     * @param key Unique identifier (usually IP address or user ID)
+     * Check if request is allowed and get rate limiter for the given key
+     * @param key Unique identifier (usually IP address)
      * @param endpoint API endpoint path
-     * @return Bucket for rate limiting
+     * @return true if request is allowed, false if rate limit exceeded
      */
-    public Bucket resolveBucket(String key, String endpoint) {
-        String bucketKey = endpoint + ":" + key;
-        return buckets.computeIfAbsent(bucketKey, k -> createBucket(endpoint));
+    public boolean allowRequest(String key, String endpoint) {
+        String limitKey = endpoint + ":" + key;
+        double permitsPerSecond = getPermitsPerSecond(endpoint);
+        
+        RateLimiter rateLimiter = limiters.asMap().computeIfAbsent(limitKey, k -> 
+            RateLimiter.create(permitsPerSecond)
+        );
+        
+        return rateLimiter.tryAcquire();
     }
 
     /**
-     * Create a bucket based on the endpoint
-     * Different endpoints have different rate limits
+     * Get permits per second based on endpoint
      */
-    private Bucket createBucket(String endpoint) {
+    private double getPermitsPerSecond(String endpoint) {
         if (endpoint.contains("/api/auth/login")) {
-            // 5 requests per minute for login (brute force protection)
-            return Bucket4j.builder()
-                .addLimit(Bandwidth.classic(5, Refill.intervally(5, Duration.ofMinutes(1))))
-                .build();
+            // 5 requests per minute = 0.083 per second
+            return 0.083;
         } else if (endpoint.contains("/api/auth/register")) {
-            // 10 requests per hour for registration
-            return Bucket4j.builder()
-                .addLimit(Bandwidth.classic(10, Refill.intervally(10, Duration.ofHours(1))))
-                .build();
+            // 10 requests per hour = 0.0028 per second
+            return 0.0028;
         } else if (endpoint.contains("/api/")) {
-            // General API: 100 requests per minute
-            return Bucket4j.builder()
-                .addLimit(Bandwidth.classic(100, Refill.intervally(100, Duration.ofMinutes(1))))
-                .build();
+            // General API: 100 requests per minute = 1.67 per second
+            return 1.67;
         } else {
-            // Default: 500 requests per minute
-            return Bucket4j.builder()
-                .addLimit(Bandwidth.classic(500, Refill.intervally(500, Duration.ofMinutes(1))))
-                .build();
+            // Default: 500 requests per minute = 8.33 per second
+            return 8.33;
         }
     }
 
     /**
-     * Get remaining tokens for display in response header
+     * Get wait time in seconds for the given endpoint
      */
-    public long getRemainingTokens(String key, String endpoint) {
-        Bucket bucket = resolveBucket(key, endpoint);
-        return bucket.estimateAbilityToConsume(1).getRoundedTokensToConsume();
+    public long getWaitTimeSeconds(String endpoint) {
+        double permitsPerSecond = getPermitsPerSecond(endpoint);
+        // Return ~60 seconds for all endpoints as a standard wait time
+        return 60;
     }
 }
