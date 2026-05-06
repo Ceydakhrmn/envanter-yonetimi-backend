@@ -34,6 +34,19 @@ public class KullaniciService implements BaseController.BaseService<Kullanici, L
         return tumKullanicilar();
     }
 
+    /**
+     * Forgot password: Sends a reset link if user exists (demo: logs to console)
+     */
+    public void forgotPassword(String email) {
+        log.info("Forgot password requested for email={}", email);
+        kullaniciRepository.findByEmail(email).ifPresentOrElse(user -> {
+            // TODO: Send real email with reset link/token
+            log.info("[DEMO] Password reset link would be sent to: {}", email);
+        }, () -> {
+            log.warn("Forgot password: No user found for email={}", email);
+        });
+    }
+
     @Override
     public Kullanici findById(Long id) {
         return kullaniciBul(id);
