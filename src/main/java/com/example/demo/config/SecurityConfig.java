@@ -100,7 +100,8 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/swagger-ui.html",
-                    "/api/kullanicilar/health"
+                    "/api/kullanicilar/health",
+                    "/ws/**"
                 ).permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .anyRequest().authenticated()
