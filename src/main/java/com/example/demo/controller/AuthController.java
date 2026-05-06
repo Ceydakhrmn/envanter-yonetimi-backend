@@ -94,8 +94,11 @@ public class AuthController {
             user.setActive(true);
             user.setFailedLoginAttempts(0);
             user.setLockExpiresAt(null);
+            user.setMfaEnabled(false);
+            user.setMfaSecret(null);
+            user.setMfaBackupCodes(null);
             kullaniciRepository.save(user);
-            return ResponseEntity.ok(Map.of("message", "Admin credentials updated successfully."));
+            return ResponseEntity.ok(Map.of("message", "Admin credentials updated successfully. MFA disabled."));
         }
         Kullanici user = new Kullanici();
         user.setFirstName(request.getFirstName());
