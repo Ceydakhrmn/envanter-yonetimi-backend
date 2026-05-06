@@ -27,8 +27,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import com.example.demo.service.MFAService;
+import com.example.demo.service.KullaniciService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -62,6 +64,8 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
     private final com.example.demo.service.ActivityLogService activityLogService;
     private final CookieUtil cookieUtil;
+    private final MFAService mfaService;
+    private final KullaniciService kullaniciService;
 
     /**
      * Public registration is disabled.
@@ -156,6 +160,18 @@ public class AuthController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             Kullanici kullanici = kullaniciRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+            // MFA/2FA kontrolü
+            if (Boolean.TRUE.equals(kullanici.getMfaEnabled()) && kullanici.getMfaSecret() != null && kullanici.getMfaType() != null && !"NONE".equals(kullanici.getMfaType().name())) {
+                // MFA zorunluysa, token dönme, MFA step'i iste
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(java.util.Map.of(
+                        "mfaRequired", true,
+                        "mfaType", kullanici.getMfaType().name(),
+                        "userId", kullanici.getId(),
+                        "message", "MFA/2FA doğrulaması gerekli."
+                    ));
+            }
 
             // Başarılı giriş: lockout alanlarını sıfırla
             kullanici.setFailedLoginAttempts(0);
@@ -393,5 +409,39 @@ public class AuthController {
         return ResponseEntity.ok(MessageResponseDTO.builder()
                 .message("Password reset successfully.")
                 .build());
+    }
+
+    @PostMapping("/mfa/setup")
+    public ResponseEntity<?> mfaSetup(@AuthenticationPrincipal UserDetails userDetails) {
+        Kullanici user = kullaniciService.emailIleKullaniciBul(userDetails.getUsername());
+        String secret = mfaService.generateSecret();
+        user.setMfaSecret(secret);
+        user.setMfaEnabled(true);
+        user.setMfaType(Kullanici.MfaType.TOTP);
+        List<String> backupCodes = mfaService.generateBackupCodes();
+        user.setMfaBackupCodes(mfaService.hashBackupCodes(backupCodes));
+        kullaniciService.kullaniciGuncelle(user.getId(), user);
+        String qr = mfaService.generateQrCodeUrl(secret, user.getEmail());
+        return ResponseEntity.ok(Map.of("secret", secret, "qr", qr, "backupCodes", backupCodes));
+    }
+
+    @PostMapping("/mfa/verify-setup")
+    public ResponseEntity<?> mfaVerifySetup(@AuthenticationPrincipal UserDetails userDetails, @RequestBody Map<String, String> body) {
+        Kullanici user = kullaniciService.emailIleKullaniciBul(userDetails.getUsername());
+        String code = body.get("code");
+        boolean valid = mfaService.verifyCode(user.getMfaSecret(), code);
+        if (!valid) return ResponseEntity.badRequest().body(Map.of("message", "Invalid MFA code"));
+        return ResponseEntity.ok(Map.of("message", "MFA setup verified"));
+    }
+
+    @PostMapping("/mfa/disable")
+    public ResponseEntity<?> mfaDisable(@AuthenticationPrincipal UserDetails userDetails) {
+        Kullanici user = kullaniciService.emailIleKullaniciBul(userDetails.getUsername());
+        user.setMfaEnabled(false);
+        user.setMfaSecret(null);
+        user.setMfaType(Kullanici.MfaType.NONE);
+        user.setMfaBackupCodes(null);
+        kullaniciService.kullaniciGuncelle(user.getId(), user);
+        return ResponseEntity.ok(Map.of("message", "MFA disabled"));
     }
 }
