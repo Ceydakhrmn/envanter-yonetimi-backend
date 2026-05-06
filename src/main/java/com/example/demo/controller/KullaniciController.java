@@ -1,5 +1,6 @@
-import com.example.demo.dto.ForgotPasswordRequestDTO;
 package com.example.demo.controller;
+
+import com.example.demo.dto.ForgotPasswordRequestDTO;
 
 import com.example.demo.dto.KullaniciMapper;
 import com.example.demo.dto.KullaniciRequestDTO;
@@ -56,18 +57,19 @@ public class KullaniciController {
 
     // ==================== CRUD Operations ====================
 
+    @Operation(summary = "Forgot password", description = "Sends a password reset link to the user's email if exists")
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
+        log.info("API: Forgot password request for email={}", request.getEmail());
+        service.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+                .message("If this email exists, a reset link has been sent.")
+                .build());
+    }
+
     @Operation(summary = "List all users", description = "Returns all users in the system with pagination and advanced filtering support")
     @ApiResponse(responseCode = "200", description = "Success")
     @GetMapping
-        @Operation(summary = "Forgot password", description = "Sends a password reset link to the user's email if exists")
-        @PostMapping("/forgot-password")
-        public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
-            log.info("API: Forgot password request for email={}", request.getEmail());
-            service.forgotPassword(request.getEmail());
-            return ResponseEntity.ok(MessageResponseDTO.builder()
-                    .message("If this email exists, a reset link has been sent.")
-                    .build());
-        }
     public ResponseEntity<PagedResponseDTO<KullaniciResponseDTO>> findAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
