@@ -300,6 +300,25 @@ public class AuthController {
     }
 
     /**
+     * Returns the TOTP QR URL for the given email (only if MFA is enabled)
+     */
+    @PostMapping("/totp-qr")
+    public ResponseEntity<?> getTotpQr(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email required."));
+        }
+        var optionalUser = kullaniciRepository.findByEmail(email);
+        if (optionalUser.isEmpty() || !Boolean.TRUE.equals(optionalUser.get().getMfaEnabled()) || optionalUser.get().getMfaSecret() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Authenticator bu hesap için aktif değil."));
+        }
+        Kullanici user = optionalUser.get();
+        String qrUrl = mfaService.generateQrCodeUrl(user.getMfaSecret(), user.getEmail());
+        return ResponseEntity.ok(Map.of("qr", qrUrl));
+    }
+
+    /**
      * Test endpoint to verify JWT authentication
      */
     @Operation(summary = "Test authentication", description = "Verifies that JWT token is working")
