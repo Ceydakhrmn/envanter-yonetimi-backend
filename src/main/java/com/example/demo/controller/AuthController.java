@@ -234,6 +234,72 @@ public class AuthController {
     }
 
     /**
+     * Login with TOTP only (email + authenticator code, no password)
+     */
+    @PostMapping("/login-totp")
+    public ResponseEntity<?> loginWithTotp(@RequestBody Map<String, String> request, HttpServletResponse httpResponse) {
+        String email = request.get("email");
+        String code = request.get("code");
+        if (email == null || code == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email and code are required."));
+        }
+
+        var optionalUser = kullaniciRepository.findByEmail(email);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid credentials."));
+        }
+
+        Kullanici kullanici = optionalUser.get();
+
+        // Lockout check
+        if (kullanici.getLockExpiresAt() != null && kullanici.getLockExpiresAt().isAfter(LocalDateTime.now())) {
+            long minutesLeft = java.time.Duration.between(LocalDateTime.now(), kullanici.getLockExpiresAt()).toMinutes() + 1;
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Map.of("message", "Account is locked. Try again in " + minutesLeft + " minutes."));
+        }
+
+        // MFA must be enabled and secret must exist
+        if (!Boolean.TRUE.equals(kullanici.getMfaEnabled()) || kullanici.getMfaSecret() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "Authenticator login is not enabled for this account."));
+        }
+
+        // Validate TOTP code
+        if (!mfaService.validateCode(kullanici.getMfaSecret(), code)) {
+            int attempts = (kullanici.getFailedLoginAttempts() == null ? 0 : kullanici.getFailedLoginAttempts()) + 1;
+            kullanici.setFailedLoginAttempts(attempts);
+            if (attempts >= 5) {
+                kullanici.setLockExpiresAt(LocalDateTime.now().plusMinutes(15));
+            }
+            kullaniciRepository.save(kullanici);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid authenticator code."));
+        }
+
+        // Success
+        kullanici.setFailedLoginAttempts(0);
+        kullanici.setLockExpiresAt(null);
+        kullanici.setLastLoginDate(LocalDateTime.now());
+        kullaniciRepository.save(kullanici);
+
+        String token = jwtUtil.generateToken(kullanici);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(kullanici.getId());
+        cookieUtil.addRefreshTokenCookie(httpResponse, refreshToken.getToken());
+        activityLogService.log("LOGIN_TOTP", "AUTH", kullanici.getId(), "TOTP ile giriş: " + email);
+
+        AuthResponseDTO response = AuthResponseDTO.builder()
+            .token(token).type("Bearer").refreshToken(refreshToken.getToken())
+            .id(kullanici.getId()).email(kullanici.getEmail())
+            .firstName(kullanici.getFirstName()).lastName(kullanici.getLastName())
+            .department(kullanici.getDepartment())
+            .role(kullanici.getRole() != null ? kullanici.getRole().name() : "USER")
+            .lastLoginDate(kullanici.getLastLoginDate())
+            .passwordExpired(false)
+            .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Test endpoint to verify JWT authentication
      */
     @Operation(summary = "Test authentication", description = "Verifies that JWT token is working")
