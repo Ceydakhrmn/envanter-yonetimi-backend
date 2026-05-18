@@ -146,6 +146,77 @@ public class AssetController {
         return ResponseEntity.ok(updated);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
+    @PostMapping("/{id}/transfer")
+    public ResponseEntity<?> transfer(@PathVariable Long id, @RequestBody Map<String, Long> body, Authentication auth) {
+        Long newUserId = body.get("userId");
+        if (newUserId == null) return ResponseEntity.badRequest().body(Map.of("message", "userId required"));
+
+        AssetResponseDTO current = assetService.getById(id);
+        Long oldUserId = current.getAssignedUserId();
+        String oldUserName = current.getAssignedUserName();
+
+        Kullanici newUser = kullaniciRepository.findById(newUserId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        AssetRequestDTO dto = new AssetRequestDTO();
+        dto.setName(current.getName()); dto.setCategory(current.getCategory());
+        dto.setStatus(current.getStatus()); dto.setBrand(current.getBrand());
+        dto.setModel(current.getModel()); dto.setVendor(current.getVendor());
+        dto.setSerialNumber(current.getSerialNumber()); dto.setPurchaseDate(current.getPurchaseDate());
+        dto.setPurchasePrice(current.getPurchasePrice()); dto.setWarrantyExpiryDate(current.getWarrantyExpiry());
+        dto.setRenewalDate(current.getRenewalDate()); dto.setSeatCount(current.getSeatCount());
+        dto.setAssignedUserId(newUserId); dto.setAssignedDepartment(current.getAssignedDepartment());
+        dto.setNotes(current.getNotes());
+
+        AssetResponseDTO updated = assetService.update(id, dto);
+        String newUserName = newUser.getFirstName() + " " + newUser.getLastName();
+
+        activityLogService.log("REASSIGNED", "ASSET", id,
+            "Varlık devredildi: " + updated.getName() + " → " + newUserName);
+        logAssignment(id, updated.getName(), oldUserId == null ? "ASSIGNED" : "REASSIGNED",
+            oldUserId, oldUserName, newUserId, newUserName,
+            current.getAssignedDepartment(), current.getAssignedDepartment(), auth.getName());
+
+        if (oldUserId != null && !oldUserId.equals(newUserId)) {
+            kullaniciRepository.findById(oldUserId).ifPresent(u ->
+                notificationService.create("warning", "Varlık atamanız kaldırıldı: " + updated.getName(), u.getEmail()));
+        }
+        notificationService.create("info", "Size bir varlık devredildi: " + updated.getName(), newUser.getEmail());
+
+        return ResponseEntity.ok(updated);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
+    @PostMapping("/{id}/return")
+    public ResponseEntity<?> returnAsset(@PathVariable Long id, Authentication auth) {
+        AssetResponseDTO current = assetService.getById(id);
+        Long oldUserId = current.getAssignedUserId();
+        String oldUserName = current.getAssignedUserName();
+
+        AssetRequestDTO dto = new AssetRequestDTO();
+        dto.setName(current.getName()); dto.setCategory(current.getCategory());
+        dto.setStatus(current.getStatus()); dto.setBrand(current.getBrand());
+        dto.setModel(current.getModel()); dto.setVendor(current.getVendor());
+        dto.setSerialNumber(current.getSerialNumber()); dto.setPurchaseDate(current.getPurchaseDate());
+        dto.setPurchasePrice(current.getPurchasePrice()); dto.setWarrantyExpiryDate(current.getWarrantyExpiry());
+        dto.setRenewalDate(current.getRenewalDate()); dto.setSeatCount(current.getSeatCount());
+        dto.setAssignedUserId(null); dto.setAssignedDepartment(current.getAssignedDepartment());
+        dto.setNotes(current.getNotes());
+
+        AssetResponseDTO updated = assetService.update(id, dto);
+        activityLogService.log("UNASSIGNED", "ASSET", id, "Varlık iade edildi: " + updated.getName());
+        logAssignment(id, updated.getName(), "UNASSIGNED",
+            oldUserId, oldUserName, null, null,
+            current.getAssignedDepartment(), current.getAssignedDepartment(), auth.getName());
+
+        if (oldUserId != null) {
+            kullaniciRepository.findById(oldUserId).ifPresent(u ->
+                notificationService.create("warning", "Varlık atamanız kaldırıldı: " + updated.getName(), u.getEmail()));
+        }
+        return ResponseEntity.ok(updated);
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
