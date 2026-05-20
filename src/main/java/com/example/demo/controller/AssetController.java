@@ -232,6 +232,17 @@ public class AssetController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
+    @PostMapping("/bulk-import")
+    public ResponseEntity<Map<String, Object>> bulkImport(@RequestBody List<AssetRequestDTO> assets) {
+        if (assets == null || assets.isEmpty()) return ResponseEntity.badRequest().build();
+        List<Map<String, Object>> results = assetService.bulkImport(assets);
+        long success = results.stream().filter(r -> "success".equals(r.get("status"))).count();
+        long failed = results.stream().filter(r -> "error".equals(r.get("status"))).count();
+        activityLogService.log("BULK_IMPORT", "ASSET", null, "Toplu içe aktarma: " + success + " başarılı, " + failed + " başarısız");
+        return ResponseEntity.ok(Map.of("total", assets.size(), "success", success, "failed", failed, "results", results));
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/bulk")
     public ResponseEntity<Void> bulkDelete(@RequestBody Map<String, List<Long>> body) {

@@ -50,6 +50,29 @@ public class AssetService {
         assetRepository.deleteAllById(ids);
     }
 
+    public List<Map<String, Object>> bulkImport(List<AssetRequestDTO> dtos) {
+        List<Map<String, Object>> results = new java.util.ArrayList<>();
+        int row = 1;
+        for (AssetRequestDTO dto : dtos) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("row", row++);
+            result.put("name", dto.getName());
+            try {
+                if (dto.getName() == null || dto.getName().isBlank()) {
+                    throw new RuntimeException("Name is required");
+                }
+                Asset asset = toEntity(dto, new Asset());
+                assetRepository.save(asset);
+                result.put("status", "success");
+            } catch (Exception e) {
+                result.put("status", "error");
+                result.put("message", e.getMessage());
+            }
+            results.add(result);
+        }
+        return results;
+    }
+
     public void bulkUpdateStatus(List<Long> ids, Asset.Status status) {
         List<Asset> assets = assetRepository.findAllById(ids);
         assets.forEach(a -> a.setStatus(status));
