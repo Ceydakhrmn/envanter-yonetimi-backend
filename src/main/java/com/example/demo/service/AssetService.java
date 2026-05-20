@@ -46,6 +46,16 @@ public class AssetService {
         assetRepository.deleteById(id);
     }
 
+    public void bulkDelete(List<Long> ids) {
+        assetRepository.deleteAllById(ids);
+    }
+
+    public void bulkUpdateStatus(List<Long> ids, Asset.Status status) {
+        List<Asset> assets = assetRepository.findAllById(ids);
+        assets.forEach(a -> a.setStatus(status));
+        assetRepository.saveAll(assets);
+    }
+
     public List<AssetResponseDTO> getExpiringSoon() {
         return assetRepository.findExpiringBefore(LocalDate.now().plusDays(30))
                 .stream().map(AssetResponseDTO::from).toList();

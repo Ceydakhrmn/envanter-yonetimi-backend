@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import com.example.demo.entity.Asset;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -228,6 +229,30 @@ public class AssetController {
                 .filter(u -> u.getRole() == Kullanici.Role.ADMIN)
                 .map(Kullanici::getEmail).toList();
         notificationService.notifyAllAdmins("warning", "Varlık silindi: " + asset.getName(), adminEmails);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/bulk")
+    public ResponseEntity<Void> bulkDelete(@RequestBody Map<String, List<Long>> body) {
+        List<Long> ids = body.get("ids");
+        if (ids == null || ids.isEmpty()) return ResponseEntity.badRequest().build();
+        assetService.bulkDelete(ids);
+        activityLogService.log("BULK_DELETE", "ASSET", null, ids.size() + " varlık silindi");
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
+    @PatchMapping("/bulk-status")
+    public ResponseEntity<Void> bulkUpdateStatus(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Integer> rawIds = (List<Integer>) body.get("ids");
+        String statusStr = (String) body.get("status");
+        if (rawIds == null || rawIds.isEmpty() || statusStr == null) return ResponseEntity.badRequest().build();
+        List<Long> ids = rawIds.stream().map(Integer::longValue).toList();
+        Asset.Status status = Asset.Status.valueOf(statusStr);
+        assetService.bulkUpdateStatus(ids, status);
+        activityLogService.log("UPDATE", "ASSET", null, ids.size() + " varlığın durumu güncellendi: " + statusStr);
         return ResponseEntity.noContent().build();
     }
 
