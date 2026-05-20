@@ -164,7 +164,7 @@ public class AssetController {
         dto.setStatus(current.getStatus()); dto.setBrand(current.getBrand());
         dto.setModel(current.getModel()); dto.setVendor(current.getVendor());
         dto.setSerialNumber(current.getSerialNumber()); dto.setPurchaseDate(current.getPurchaseDate());
-        dto.setPurchasePrice(current.getPurchasePrice()); dto.setWarrantyExpiryDate(current.getWarrantyExpiry());
+        dto.setPurchasePrice(current.getPurchasePrice()); dto.setWarrantyExpiryDate(current.getWarrantyExpiryDate());
         dto.setRenewalDate(current.getRenewalDate()); dto.setSeatCount(current.getSeatCount());
         dto.setAssignedUserId(newUserId); dto.setAssignedDepartment(current.getAssignedDepartment());
         dto.setNotes(current.getNotes());
@@ -199,7 +199,7 @@ public class AssetController {
         dto.setStatus(current.getStatus()); dto.setBrand(current.getBrand());
         dto.setModel(current.getModel()); dto.setVendor(current.getVendor());
         dto.setSerialNumber(current.getSerialNumber()); dto.setPurchaseDate(current.getPurchaseDate());
-        dto.setPurchasePrice(current.getPurchasePrice()); dto.setWarrantyExpiryDate(current.getWarrantyExpiry());
+        dto.setPurchasePrice(current.getPurchasePrice()); dto.setWarrantyExpiryDate(current.getWarrantyExpiryDate());
         dto.setRenewalDate(current.getRenewalDate()); dto.setSeatCount(current.getSeatCount());
         dto.setAssignedUserId(null); dto.setAssignedDepartment(current.getAssignedDepartment());
         dto.setNotes(current.getNotes());
