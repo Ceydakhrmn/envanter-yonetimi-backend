@@ -147,10 +147,10 @@
 			<version>32.1.3-jre</version>
 		</dependency>
 
-		<!-- Sentry error monitoring -->
+		<!-- Sentry error monitoring (core only — starter incompatible with Spring Boot 4) -->
 		<dependency>
 			<groupId>io.sentry</groupId>
-			<artifactId>sentry-spring-boot-starter-jakarta</artifactId>
+			<artifactId>sentry</artifactId>
 			<version>7.14.0</version>
 		</dependency>
 	</dependencies>
