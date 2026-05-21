@@ -146,6 +146,13 @@
 			<artifactId>guava</artifactId>
 			<version>32.1.3-jre</version>
 		</dependency>
+
+		<!-- Sentry error monitoring -->
+		<dependency>
+			<groupId>io.sentry</groupId>
+			<artifactId>sentry-spring-boot-starter-jakarta</artifactId>
+			<version>7.14.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
