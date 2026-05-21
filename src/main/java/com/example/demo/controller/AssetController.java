@@ -2,6 +2,8 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.AssetRequestDTO;
 import com.example.demo.dto.AssetResponseDTO;
+import com.example.demo.dto.DepreciationResponse;
+import com.example.demo.dto.DepreciationSummaryResponse;
 import com.example.demo.dto.PagedResponseDTO;
 import com.example.demo.entity.AssetAssignmentHistory;
 import com.example.demo.entity.Kullanici;
@@ -28,6 +30,7 @@ public class AssetController {
     private final com.example.demo.service.NotificationService notificationService;
     private final com.example.demo.repository.KullaniciRepository kullaniciRepository;
     private final AssetAssignmentHistoryRepository assignmentHistoryRepository;
+    private final com.example.demo.service.DepreciationService depreciationService;
 
     @GetMapping
     public ResponseEntity<PagedResponseDTO<AssetResponseDTO>> getAll(
@@ -285,6 +288,20 @@ public class AssetController {
     @GetMapping("/{id}/assignment-history")
     public ResponseEntity<List<AssetAssignmentHistory>> getAssignmentHistory(@PathVariable Long id) {
         return ResponseEntity.ok(assignmentHistoryRepository.findByAssetIdOrderByCreatedAtDesc(id));
+    }
+
+    @GetMapping("/depreciation-summary")
+    public ResponseEntity<DepreciationSummaryResponse> getDepreciationSummary() {
+        return ResponseEntity.ok(depreciationService.getSummary());
+    }
+
+    @GetMapping("/{id}/depreciation")
+    public ResponseEntity<DepreciationResponse> getDepreciation(@PathVariable Long id) {
+        Asset asset = assetService.getEntityById(id);
+        if (asset == null) return ResponseEntity.notFound().build();
+        DepreciationResponse resp = depreciationService.calculate(asset);
+        if (resp == null) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(resp);
     }
 
     private void logAssignment(Long assetId, String assetName, String action,

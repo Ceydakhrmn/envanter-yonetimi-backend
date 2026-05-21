@@ -31,6 +31,10 @@ public class AssetService {
                 .orElseThrow(() -> new RuntimeException("Asset not found")));
     }
 
+    public Asset getEntityById(Long id) {
+        return assetRepository.findById(id).orElse(null);
+    }
+
     public AssetResponseDTO create(AssetRequestDTO dto) {
         Asset asset = toEntity(dto, new Asset());
         return AssetResponseDTO.from(assetRepository.save(asset));
@@ -130,6 +134,7 @@ public class AssetService {
         asset.setWarrantyExpiryDate(dto.getWarrantyExpiryDate());
         asset.setStatus(dto.getStatus() != null ? dto.getStatus() : Asset.Status.ACTIVE);
         asset.setSeatCount(dto.getSeatCount());
+        asset.setUsefulLifeYears(dto.getUsefulLifeYears());
         asset.setAssignedDepartment(dto.getAssignedDepartment());
         asset.setNotes(dto.getNotes());
 

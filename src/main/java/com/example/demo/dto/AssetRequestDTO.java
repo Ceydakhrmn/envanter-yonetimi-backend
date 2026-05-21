@@ -20,6 +20,7 @@ public class AssetRequestDTO {
     private LocalDate warrantyExpiryDate;
     private Asset.Status status;
     private Integer seatCount;
+    private Integer usefulLifeYears;
     private Long assignedUserId;
     private String assignedDepartment;
     private String notes;

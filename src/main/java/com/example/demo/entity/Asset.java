@@ -50,6 +50,9 @@ public class Asset {
     @Column(name = "seat_count")
     private Integer seatCount;
 
+    @Column(name = "useful_life_years")
+    private Integer usefulLifeYears;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_user_id")
     private Kullanici assignedUser;
