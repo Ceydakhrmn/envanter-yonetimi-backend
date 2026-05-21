@@ -290,6 +290,16 @@ public class AssetController {
         return ResponseEntity.ok(assignmentHistoryRepository.findByAssetIdOrderByCreatedAtDesc(id));
     }
 
+    @GetMapping("/tags")
+    public ResponseEntity<List<String>> getAllTags() {
+        return ResponseEntity.ok(assetService.getAllTags());
+    }
+
+    @GetMapping("/by-tag")
+    public ResponseEntity<List<AssetResponseDTO>> getByTag(@RequestParam String tag) {
+        return ResponseEntity.ok(assetService.getByTag(tag));
+    }
+
     @GetMapping("/depreciation-summary")
     public ResponseEntity<DepreciationSummaryResponse> getDepreciationSummary() {
         return ResponseEntity.ok(depreciationService.getSummary());

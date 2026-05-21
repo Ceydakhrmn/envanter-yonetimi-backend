@@ -21,6 +21,7 @@ public class AssetRequestDTO {
     private Asset.Status status;
     private Integer seatCount;
     private Integer usefulLifeYears;
+    private java.util.List<String> tags;
     private Long assignedUserId;
     private String assignedDepartment;
     private String notes;

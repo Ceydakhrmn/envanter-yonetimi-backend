@@ -6,6 +6,8 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "assets")
@@ -52,6 +54,11 @@ public class Asset {
 
     @Column(name = "useful_life_years")
     private Integer usefulLifeYears;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "asset_tags", joinColumns = @JoinColumn(name = "asset_id"))
+    @Column(name = "tag")
+    private Set<String> tags = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_user_id")

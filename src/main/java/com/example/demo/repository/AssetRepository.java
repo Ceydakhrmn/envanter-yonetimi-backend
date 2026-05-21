@@ -27,4 +27,10 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
            "LOWER(a.brand) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
            "LOWER(a.serialNumber) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<Asset> search(String q);
+
+    @Query("SELECT a FROM Asset a JOIN a.tags t WHERE LOWER(t) = LOWER(:tag)")
+    List<Asset> findByTag(@org.springframework.data.repository.query.Param("tag") String tag);
+
+    @Query("SELECT DISTINCT t FROM Asset a JOIN a.tags t ORDER BY t")
+    List<String> findAllTags();
 }

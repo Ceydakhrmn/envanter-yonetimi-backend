@@ -35,6 +35,16 @@ public class AssetService {
         return assetRepository.findById(id).orElse(null);
     }
 
+    public List<AssetResponseDTO> getByTag(String tag) {
+        return assetRepository.findByTag(tag).stream()
+                .map(AssetResponseDTO::from)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<String> getAllTags() {
+        return assetRepository.findAllTags();
+    }
+
     public AssetResponseDTO create(AssetRequestDTO dto) {
         Asset asset = toEntity(dto, new Asset());
         return AssetResponseDTO.from(assetRepository.save(asset));
@@ -135,6 +145,13 @@ public class AssetService {
         asset.setStatus(dto.getStatus() != null ? dto.getStatus() : Asset.Status.ACTIVE);
         asset.setSeatCount(dto.getSeatCount());
         asset.setUsefulLifeYears(dto.getUsefulLifeYears());
+        if (dto.getTags() != null) {
+            asset.getTags().clear();
+            dto.getTags().stream()
+                .filter(t -> t != null && !t.isBlank())
+                .map(String::trim)
+                .forEach(asset.getTags()::add);
+        }
         asset.setAssignedDepartment(dto.getAssignedDepartment());
         asset.setNotes(dto.getNotes());
 
