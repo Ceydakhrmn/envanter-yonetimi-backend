@@ -30,4 +30,6 @@ public interface KullaniciRepository extends JpaRepository<Kullanici, Long> {
 
     // Bulk delete by IDs
     void deleteAllByIdIn(List<Long> ids);
+
+    List<Kullanici> findByRoleAndActiveTrue(Kullanici.Role role);
 }

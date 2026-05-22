@@ -42,7 +42,10 @@ public class NotificationService {
     @Async
     protected void sendEmailAsync(String to, String type, String message) {
         try {
-            emailService.sendNotificationEmail(to, type, message);
+            boolean sent = emailService.sendNotificationEmail(to, type, message);
+            if (!sent) {
+                log.debug("Bildirim e-postası atlandı: {}", to);
+            }
         } catch (Exception e) {
             log.warn("Bildirim e-postası gönderilemedi {}: {}", to, e.getMessage());
         }

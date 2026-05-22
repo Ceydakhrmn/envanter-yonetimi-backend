@@ -29,4 +29,10 @@ public class Invitation {
 
     @Column(name = "role")
     private String role = "USER";
+
+    @Column(name = "reminder_sent_at")
+    private LocalDateTime reminderSentAt;
+
+    @Column(name = "expiration_notified_at")
+    private LocalDateTime expirationNotifiedAt;
 }

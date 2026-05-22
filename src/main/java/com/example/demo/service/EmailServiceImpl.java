@@ -27,19 +27,19 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendInvitationEmail(String to, String subject, String body) {
+    public boolean sendInvitationEmail(String to, String subject, String body) {
         if (!isMailConfigured()) {
             log.warn("Mail yapılandırılmamış. Email gönderilemedi: {}", to);
-            return;
+            return false;
         }
-        sendHtml(to, subject, body);
+        return sendHtml(to, subject, body);
     }
 
     @Override
-    public void sendNotificationEmail(String to, String type, String message) {
+    public boolean sendNotificationEmail(String to, String type, String message) {
         if (!isMailConfigured()) {
             log.debug("Mail yapılandırılmamış. Bildirim e-postası atlandı: {}", to);
-            return;
+            return false;
         }
         String iconColor = switch (type) {
             case "success" -> "#10b981";
@@ -67,13 +67,14 @@ public class EmailServiceImpl implements EmailService {
             """.formatted(iconColor, typeLabel, message, frontendUrl);
 
         try {
-            sendHtml(to, "Efsora — " + typeLabel + ": " + truncate(message, 60), html);
+            return sendHtml(to, "Efsora — " + typeLabel + ": " + truncate(message, 60), html);
         } catch (Exception e) {
             log.warn("Bildirim e-postası gönderilemedi {}: {}", to, e.getMessage());
+            return false;
         }
     }
 
-    private void sendHtml(String to, String subject, String body) {
+    private boolean sendHtml(String to, String subject, String body) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -83,6 +84,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(body, true);
             mailSender.send(message);
             log.info("Email gönderildi: {}", to);
+            return true;
         } catch (MessagingException e) {
             log.error("Email gönderilemedi: {}", e.getMessage());
             throw new RuntimeException("Email gönderilemedi", e);
