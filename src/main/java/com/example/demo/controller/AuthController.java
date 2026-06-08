@@ -10,7 +10,6 @@ import com.example.demo.dto.RefreshTokenRequestDTO;
 import com.example.demo.dto.ResetPasswordRequestDTO;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.entity.RefreshToken;
-import com.example.demo.exception.EmailAlreadyExistsException;
 import com.example.demo.exception.RefreshTokenNotFoundException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.KullaniciRepository;

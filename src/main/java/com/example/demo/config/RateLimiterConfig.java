@@ -59,7 +59,6 @@ public class RateLimiterConfig {
      * Get wait time in seconds for the given endpoint
      */
     public long getWaitTimeSeconds(String endpoint) {
-        double permitsPerSecond = getPermitsPerSecond(endpoint);
         // Return ~60 seconds for all endpoints as a standard wait time
         return 60;
     }
