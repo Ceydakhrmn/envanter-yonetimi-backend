@@ -289,4 +289,44 @@ public class KullaniciController {
 
         return ResponseEntity.ok(response);
     }
+
+    // ==================== Bulk Import ====================
+
+    @Operation(summary = "Bulk import users from CSV data", description = "Creates multiple users from CSV-like JSON array")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/bulk-import")
+    public ResponseEntity<java.util.Map<String, Object>> bulkImport(@RequestBody List<KullaniciRequestDTO> users) {
+        log.info("API: Bulk import request for {} users", users.size());
+        List<java.util.Map<String, Object>> results = new java.util.ArrayList<>();
+        int success = 0;
+        int failed = 0;
+
+        for (int i = 0; i < users.size(); i++) {
+            KullaniciRequestDTO dto = users.get(i);
+            java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+            row.put("row", i + 1);
+            row.put("email", dto.getEmail());
+            try {
+                Kullanici entity = mapper.toEntity(dto);
+                service.kullaniciOlustur(entity);
+                row.put("status", "success");
+                success++;
+            } catch (Exception e) {
+                row.put("status", "error");
+                row.put("message", e.getMessage());
+                failed++;
+            }
+            results.add(row);
+        }
+
+        activityLogService.log("BULK_IMPORT", "USER", null,
+                "Toplu import: " + success + " başarılı, " + failed + " başarısız");
+
+        java.util.Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("total", users.size());
+        response.put("success", success);
+        response.put("failed", failed);
+        response.put("results", results);
+        return ResponseEntity.ok(response);
+    }
 }

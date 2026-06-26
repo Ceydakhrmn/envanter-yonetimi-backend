@@ -16,6 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+
 @RestController
 @RequestMapping("/api/assets")
 @RequiredArgsConstructor
@@ -150,6 +155,24 @@ public class AssetController {
     @GetMapping("/{id}/assignment-history")
     public ResponseEntity<List<AssetAssignmentHistory>> getAssignmentHistory(@PathVariable Long id) {
         return ResponseEntity.ok(assignmentHistoryRepository.findByAssetIdOrderByCreatedAtDesc(id));
+    }
+
+    @GetMapping(value = "/{id}/qr-code", produces = org.springframework.http.MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getQrCode(@PathVariable Long id) {
+        AssetResponseDTO asset = assetService.getById(id);
+        try {
+            String data = "EFSORA-ASSET|ID:" + asset.getId() + "|" + asset.getName()
+                    + (asset.getSerialNumber() != null ? "|SN:" + asset.getSerialNumber() : "");
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix matrix = writer.encode(data, BarcodeFormat.QR_CODE, 300, 300);
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(matrix, "PNG", out);
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "inline; filename=asset-" + id + "-qr.png")
+                    .body(out.toByteArray());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     private void logAssignment(Long assetId, String assetName, String action,
