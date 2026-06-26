@@ -10,7 +10,6 @@ import com.example.demo.dto.RefreshTokenRequestDTO;
 import com.example.demo.dto.ResetPasswordRequestDTO;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.entity.RefreshToken;
-import com.example.demo.exception.EmailAlreadyExistsException;
 import com.example.demo.exception.RefreshTokenNotFoundException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.KullaniciRepository;
@@ -27,6 +26,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.example.demo.service.MFAService;
+import com.example.demo.service.KullaniciService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import java.util.List;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +65,8 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
     private final com.example.demo.service.ActivityLogService activityLogService;
     private final CookieUtil cookieUtil;
+    private final MFAService mfaService;
+    private final KullaniciService kullaniciService;
 
     /**
      * Public registration is disabled.
@@ -71,6 +76,40 @@ public class AuthController {
     public ResponseEntity<?> register() {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("message", "Public registration is disabled. Please use an invitation link."));
+    }
+
+    /**
+     * Creates the first ADMIN user only when no users exist in the database.
+     * Once any user exists, this endpoint returns 403.
+     */
+    @PostMapping("/bootstrap")
+    public ResponseEntity<?> bootstrap(@Valid @RequestBody KullaniciRequestDTO request) {
+        var existing = kullaniciRepository.findByEmail(request.getEmail());
+        if (existing.isPresent()) {
+            // Update password and ensure ADMIN role for the existing user
+            Kullanici user = existing.get();
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setRole(Kullanici.Role.ADMIN);
+            user.setActive(true);
+            user.setFailedLoginAttempts(0);
+            user.setLockExpiresAt(null);
+            user.setMfaEnabled(false);
+            user.setMfaSecret(null);
+            user.setMfaBackupCodes(null);
+            kullaniciRepository.save(user);
+            return ResponseEntity.ok(Map.of("message", "Admin credentials updated successfully. MFA disabled."));
+        }
+        Kullanici user = new Kullanici();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setDepartment(request.getDepartment() != null ? request.getDepartment() : "IT");
+        user.setRole(Kullanici.Role.ADMIN);
+        user.setActive(true);
+        user.setRegistrationDate(java.time.LocalDateTime.now());
+        kullaniciRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "Admin user created successfully."));
     }
 
     /**
@@ -126,6 +165,18 @@ public class AuthController {
             Kullanici kullanici = kullaniciRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+            // MFA/2FA kontrolü
+            if (Boolean.TRUE.equals(kullanici.getMfaEnabled()) && kullanici.getMfaSecret() != null && kullanici.getMfaType() != null && !"NONE".equals(kullanici.getMfaType().name())) {
+                // MFA zorunluysa, token dönme, MFA step'i iste
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(java.util.Map.of(
+                        "mfaRequired", true,
+                        "mfaType", kullanici.getMfaType().name(),
+                        "userId", kullanici.getId(),
+                        "message", "MFA/2FA doğrulaması gerekli."
+                    ));
+            }
+
             // Başarılı giriş: lockout alanlarını sıfırla
             kullanici.setFailedLoginAttempts(0);
             kullanici.setLockExpiresAt(null);
@@ -179,6 +230,91 @@ public class AuthController {
             });
             throw e;
         }
+    }
+
+    /**
+     * Login with TOTP only (email + authenticator code, no password)
+     */
+    @PostMapping("/login-totp")
+    public ResponseEntity<?> loginWithTotp(@RequestBody Map<String, String> request, HttpServletResponse httpResponse) {
+        String email = request.get("email");
+        String code = request.get("code");
+        if (email == null || code == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email and code are required."));
+        }
+
+        var optionalUser = kullaniciRepository.findByEmail(email);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid credentials."));
+        }
+
+        Kullanici kullanici = optionalUser.get();
+
+        // Lockout check
+        if (kullanici.getLockExpiresAt() != null && kullanici.getLockExpiresAt().isAfter(LocalDateTime.now())) {
+            long minutesLeft = java.time.Duration.between(LocalDateTime.now(), kullanici.getLockExpiresAt()).toMinutes() + 1;
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Map.of("message", "Account is locked. Try again in " + minutesLeft + " minutes."));
+        }
+
+        // MFA must be enabled and secret must exist
+        if (!Boolean.TRUE.equals(kullanici.getMfaEnabled()) || kullanici.getMfaSecret() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "Authenticator login is not enabled for this account."));
+        }
+
+        // Validate TOTP code
+        if (!mfaService.validateCode(kullanici.getMfaSecret(), code)) {
+            int attempts = (kullanici.getFailedLoginAttempts() == null ? 0 : kullanici.getFailedLoginAttempts()) + 1;
+            kullanici.setFailedLoginAttempts(attempts);
+            if (attempts >= 5) {
+                kullanici.setLockExpiresAt(LocalDateTime.now().plusMinutes(15));
+            }
+            kullaniciRepository.save(kullanici);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid authenticator code."));
+        }
+
+        // Success
+        kullanici.setFailedLoginAttempts(0);
+        kullanici.setLockExpiresAt(null);
+        kullanici.setLastLoginDate(LocalDateTime.now());
+        kullaniciRepository.save(kullanici);
+
+        String token = jwtUtil.generateToken(kullanici);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(kullanici.getId());
+        cookieUtil.addRefreshTokenCookie(httpResponse, refreshToken.getToken());
+        activityLogService.log("LOGIN_TOTP", "AUTH", kullanici.getId(), "TOTP ile giriş: " + email);
+
+        AuthResponseDTO response = AuthResponseDTO.builder()
+            .token(token).type("Bearer").refreshToken(refreshToken.getToken())
+            .id(kullanici.getId()).email(kullanici.getEmail())
+            .firstName(kullanici.getFirstName()).lastName(kullanici.getLastName())
+            .department(kullanici.getDepartment())
+            .role(kullanici.getRole() != null ? kullanici.getRole().name() : "USER")
+            .lastLoginDate(kullanici.getLastLoginDate())
+            .passwordExpired(false)
+            .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Returns the TOTP QR URL for the given email (only if MFA is enabled)
+     */
+    @PostMapping("/totp-qr")
+    public ResponseEntity<?> getTotpQr(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email required."));
+        }
+        var optionalUser = kullaniciRepository.findByEmail(email);
+        if (optionalUser.isEmpty() || !Boolean.TRUE.equals(optionalUser.get().getMfaEnabled()) || optionalUser.get().getMfaSecret() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Authenticator bu hesap için aktif değil."));
+        }
+        Kullanici user = optionalUser.get();
+        String qrUrl = mfaService.generateQrCodeUrl(user.getMfaSecret(), user.getEmail());
+        return ResponseEntity.ok(Map.of("qr", qrUrl));
     }
 
     /**
@@ -362,5 +498,39 @@ public class AuthController {
         return ResponseEntity.ok(MessageResponseDTO.builder()
                 .message("Password reset successfully.")
                 .build());
+    }
+
+    @PostMapping("/mfa/setup")
+    public ResponseEntity<?> mfaSetup(@AuthenticationPrincipal UserDetails userDetails) {
+        Kullanici user = kullaniciService.emailIleKullaniciBul(userDetails.getUsername());
+        String secret = mfaService.generateSecret();
+        user.setMfaSecret(secret);
+        user.setMfaEnabled(true);
+        user.setMfaType(Kullanici.MfaType.TOTP);
+        List<String> backupCodes = mfaService.generateBackupCodes();
+        user.setMfaBackupCodes(mfaService.hashBackupCodes(backupCodes));
+        kullaniciService.kullaniciGuncelle(user.getId(), user);
+        String qr = mfaService.generateQrCodeUrl(secret, user.getEmail());
+        return ResponseEntity.ok(Map.of("secret", secret, "qr", qr, "backupCodes", backupCodes));
+    }
+
+    @PostMapping("/mfa/verify-setup")
+    public ResponseEntity<?> mfaVerifySetup(@AuthenticationPrincipal UserDetails userDetails, @RequestBody Map<String, String> body) {
+        Kullanici user = kullaniciService.emailIleKullaniciBul(userDetails.getUsername());
+        String code = body.get("code");
+        boolean valid = mfaService.verifyCode(user.getMfaSecret(), code);
+        if (!valid) return ResponseEntity.badRequest().body(Map.of("message", "Invalid MFA code"));
+        return ResponseEntity.ok(Map.of("message", "MFA setup verified"));
+    }
+
+    @PostMapping("/mfa/disable")
+    public ResponseEntity<?> mfaDisable(@AuthenticationPrincipal UserDetails userDetails) {
+        Kullanici user = kullaniciService.emailIleKullaniciBul(userDetails.getUsername());
+        user.setMfaEnabled(false);
+        user.setMfaSecret(null);
+        user.setMfaType(Kullanici.MfaType.NONE);
+        user.setMfaBackupCodes(null);
+        kullaniciService.kullaniciGuncelle(user.getId(), user);
+        return ResponseEntity.ok(Map.of("message", "MFA disabled"));
     }
 }

@@ -1,4 +1,7 @@
+
 package com.example.demo.controller;
+
+import com.example.demo.dto.ForgotPasswordRequestDTO;
 
 import com.example.demo.dto.KullaniciMapper;
 import com.example.demo.dto.KullaniciRequestDTO;
@@ -8,6 +11,7 @@ import com.example.demo.dto.ChangePasswordRequestDTO;
 import com.example.demo.dto.MessageResponseDTO;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.service.KullaniciService;
+import com.example.demo.service.MFAService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -27,6 +31,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.example.demo.dto.PagedResponseDTO;
+
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * User Controller - REST API endpoints with DTO pattern
@@ -45,16 +52,73 @@ public class KullaniciController {
     private final com.example.demo.service.ActivityLogService activityLogService;
     private final com.example.demo.security.JwtUtil jwtUtil;
     private final com.example.demo.service.NotificationService notificationService;
+    @Autowired
+    private MFAService mfaService;
 
     // ==================== CRUD Operations ====================
 
-    @Operation(summary = "List all users", description = "Returns all users in the system")
+    @Operation(summary = "Forgot password", description = "Sends a password reset link to the user's email if exists")
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
+        log.info("API: Forgot password request for email={}", request.getEmail());
+        service.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(MessageResponseDTO.builder()
+                .message("If this email exists, a reset link has been sent.")
+                .build());
+    }
+
+    @Operation(summary = "List all users", description = "Returns all users in the system with pagination and advanced filtering support")
     @ApiResponse(responseCode = "200", description = "Success")
     @GetMapping
-    public ResponseEntity<List<KullaniciResponseDTO>> findAll() {
-        log.info("API: Listing all users");
-        List<Kullanici> entities = service.tumKullanicilar();
-        return ResponseEntity.ok(mapper.toResponseDTOList(entities));
+    public ResponseEntity<PagedResponseDTO<KullaniciResponseDTO>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String search
+    ) {
+        log.info("API: Listing all users - page: {}, size: {}, department: {}, role: {}, active: {}, search: {}", page, size, department, role, active, search);
+        List<Kullanici> allUsers = service.tumKullanicilar();
+        // Filtreleme
+        if (department != null && !department.equals("all")) {
+            allUsers = allUsers.stream().filter(u -> department.equals(u.getDepartment())).toList();
+        }
+        if (role != null && !role.equals("all")) {
+            allUsers = allUsers.stream().filter(u -> u.getRole() != null && role.equalsIgnoreCase(u.getRole().name())).toList();
+        }
+        if (active != null) {
+            allUsers = allUsers.stream().filter(u -> active.equals(u.getActive())).toList();
+        }
+        if (search != null && !search.isEmpty()) {
+            String s = search.toLowerCase();
+            allUsers = allUsers.stream().filter(u ->
+                (u.getFirstName() != null && u.getFirstName().toLowerCase().contains(s)) ||
+                (u.getLastName() != null && u.getLastName().toLowerCase().contains(s)) ||
+                (u.getEmail() != null && u.getEmail().toLowerCase().contains(s))
+            ).toList();
+        }
+        // Simple in-memory pagination
+        int totalElements = allUsers.size();
+        int totalPages = (totalElements + size - 1) / size;
+        // Validate page
+        if (page < 0) page = 0;
+        if (page >= totalPages && totalElements > 0) page = totalPages - 1;
+        int start = page * size;
+        int end = Math.min(start + size, totalElements);
+        List<KullaniciResponseDTO> pageContent = mapper.toResponseDTOList(
+            allUsers.subList(start, end)
+        );
+        PagedResponseDTO<KullaniciResponseDTO> response = PagedResponseDTO.<KullaniciResponseDTO>builder()
+            .content(pageContent)
+            .currentPage(page)
+            .pageSize(size)
+            .totalElements(totalElements)
+            .totalPages(totalPages)
+            .hasNext(page < totalPages - 1)
+            .hasPrevious(page > 0)
+            .build();
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Find user by ID", description = "Returns a specific user by their ID")
@@ -292,41 +356,97 @@ public class KullaniciController {
 
     // ==================== Bulk Import ====================
 
-    @Operation(summary = "Bulk import users from CSV data", description = "Creates multiple users from CSV-like JSON array")
+    @Operation(summary = "Bulk import users", description = "Creates multiple users from a list (CSV import)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed"),
+        @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/bulk-import")
     public ResponseEntity<java.util.Map<String, Object>> bulkImport(@RequestBody List<KullaniciRequestDTO> users) {
-        log.info("API: Bulk import request for {} users", users.size());
-        List<java.util.Map<String, Object>> results = new java.util.ArrayList<>();
-        int success = 0;
-        int failed = 0;
-
-        for (int i = 0; i < users.size(); i++) {
-            KullaniciRequestDTO dto = users.get(i);
-            java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
-            row.put("row", i + 1);
-            row.put("email", dto.getEmail());
-            try {
-                Kullanici entity = mapper.toEntity(dto);
-                service.kullaniciOlustur(entity);
-                row.put("status", "success");
-                success++;
-            } catch (Exception e) {
-                row.put("status", "error");
-                row.put("message", e.getMessage());
-                failed++;
-            }
-            results.add(row);
+        log.info("API: Bulk importing {} users", users.size());
+        if (users == null || users.isEmpty()) {
+            return ResponseEntity.badRequest().build();
         }
+        List<com.example.demo.entity.Kullanici> entities = users.stream().map(dto -> {
+            com.example.demo.entity.Kullanici k = mapper.toEntity(dto);
+            return k;
+        }).toList();
 
-        activityLogService.log("BULK_IMPORT", "USER", null,
-                "Toplu import: " + success + " başarılı, " + failed + " başarısız");
+        List<java.util.Map<String, Object>> results = service.topluKullaniciEkle(entities);
+        long success = results.stream().filter(r -> "success".equals(r.get("status"))).count();
+        long failed = results.stream().filter(r -> "error".equals(r.get("status"))).count();
 
-        java.util.Map<String, Object> response = new java.util.LinkedHashMap<>();
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
         response.put("total", users.size());
         response.put("success", success);
         response.put("failed", failed);
         response.put("results", results);
+
+        activityLogService.log("BULK_IMPORT", "USER", null, "Toplu içe aktarma: " + success + " başarılı, " + failed + " başarısız");
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Enable MFA/2FA", description = "Enables MFA for the authenticated user (TOTP)")
+    @PostMapping("/mfa/enable")
+    public ResponseEntity<?> enableMfa(@AuthenticationPrincipal UserDetails userDetails) {
+        Kullanici user = service.emailIleKullaniciBul(userDetails.getUsername());
+        String secret = mfaService.generateSecret();
+        user.setMfaSecret(secret);
+        user.setMfaEnabled(true);
+        user.setMfaType(Kullanici.MfaType.TOTP);
+        List<String> backupCodes = mfaService.generateBackupCodes();
+        user.setMfaBackupCodes(mfaService.hashBackupCodes(backupCodes));
+        service.kullaniciGuncelle(user.getId(), user);
+        return ResponseEntity.ok(java.util.Map.of(
+            "secret", secret,
+            "backupCodes", backupCodes
+        ));
+    }
+
+    @Operation(summary = "Disable MFA/2FA", description = "Disables MFA for the authenticated user")
+    @PostMapping("/mfa/disable")
+    public ResponseEntity<?> disableMfa(@AuthenticationPrincipal UserDetails userDetails) {
+        Kullanici user = service.emailIleKullaniciBul(userDetails.getUsername());
+        user.setMfaEnabled(false);
+        user.setMfaSecret(null);
+        user.setMfaType(Kullanici.MfaType.NONE);
+        user.setMfaBackupCodes(null);
+        service.kullaniciGuncelle(user.getId(), user);
+        return ResponseEntity.ok(java.util.Map.of("message", "MFA disabled"));
+    }
+
+    @Operation(summary = "Verify MFA/2FA code", description = "Verifies a TOTP or backup code for the authenticated user")
+    @PostMapping("/mfa/verify")
+    public ResponseEntity<?> verifyMfa(@AuthenticationPrincipal UserDetails userDetails, @RequestBody java.util.Map<String, String> body) {
+        Kullanici user = service.emailIleKullaniciBul(userDetails.getUsername());
+        String code = body.get("code");
+        boolean valid = false;
+        if (user.getMfaType() == Kullanici.MfaType.TOTP && user.getMfaSecret() != null) {
+            valid = mfaService.validateCode(user.getMfaSecret(), code);
+        } else if (user.getMfaType() == Kullanici.MfaType.BACKUP && user.getMfaBackupCodes() != null) {
+            valid = mfaService.validateBackupCode(user, code);
+            if (valid) {
+                user.setMfaBackupCodes(mfaService.removeBackupCode(user.getMfaBackupCodes(), code));
+                service.kullaniciGuncelle(user.getId(), user);
+            }
+        }
+        if (valid) {
+            return ResponseEntity.ok(java.util.Map.of("valid", true));
+        } else {
+            return ResponseEntity.status(401).body(java.util.Map.of("valid", false, "message", "Invalid MFA code"));
+        }
+    }
+
+    @Operation(summary = "Get MFA backup codes", description = "Returns current backup codes for the authenticated user (for demo, not production)")
+    @GetMapping("/mfa/backup-codes")
+    public ResponseEntity<?> getBackupCodes(@AuthenticationPrincipal UserDetails userDetails) {
+        Kullanici user = service.emailIleKullaniciBul(userDetails.getUsername());
+        if (user.getMfaBackupCodes() == null) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", "No backup codes set"));
+        }
+        return ResponseEntity.ok(java.util.Map.of(
+            "backupCodes", user.getMfaBackupCodes().split(",")
+        ));
     }
 }

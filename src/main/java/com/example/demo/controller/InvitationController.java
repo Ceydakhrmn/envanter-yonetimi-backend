@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/invitations")
@@ -41,6 +40,10 @@ public class InvitationController {
 
         if (kullaniciRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest().body(Map.of("message", "User already exists"));
+        }
+
+        if (invitationService.hasActiveInvitation(email)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Active invitation already exists"));
         }
 
         Invitation invitation = invitationService.createInvitation(email, role);

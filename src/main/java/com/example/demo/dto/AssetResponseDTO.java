@@ -22,6 +22,8 @@ public class AssetResponseDTO {
     private LocalDate warrantyExpiryDate;
     private Asset.Status status;
     private Integer seatCount;
+    private Integer usefulLifeYears;
+    private java.util.List<String> tags;
     private Long assignedUserId;
     private String assignedUserName;
     private String assignedDepartment;
@@ -44,6 +46,8 @@ public class AssetResponseDTO {
         dto.setWarrantyExpiryDate(asset.getWarrantyExpiryDate());
         dto.setStatus(asset.getStatus());
         dto.setSeatCount(asset.getSeatCount());
+        dto.setUsefulLifeYears(asset.getUsefulLifeYears());
+        dto.setTags(asset.getTags() != null ? new java.util.ArrayList<>(asset.getTags()) : new java.util.ArrayList<>());
         dto.setAssignedDepartment(asset.getAssignedDepartment());
         dto.setNotes(asset.getNotes());
         dto.setCreatedAt(asset.getCreatedAt());

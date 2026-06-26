@@ -66,8 +66,12 @@ public class ActivityLogService {
         return repository.findTop50ByOrderByCreatedAtDesc();
     }
 
-    public Page<ActivityLog> getAll(int page, int size) {
-        return repository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
+    public Page<ActivityLog> getAll(int page, int size, java.time.LocalDateTime startDate, java.time.LocalDateTime endDate) {
+        PageRequest pr = PageRequest.of(page, size);
+        if (startDate != null && endDate != null) {
+            return repository.findByCreatedAtBetweenOrderByCreatedAtDesc(startDate, endDate, pr);
+        }
+        return repository.findAllByOrderByCreatedAtDesc(pr);
     }
 
     public List<ActivityLog> getByUser(String email) {

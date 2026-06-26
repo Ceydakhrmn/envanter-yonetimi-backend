@@ -16,6 +16,8 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
 
     Page<ActivityLog> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    Page<ActivityLog> findByCreatedAtBetweenOrderByCreatedAtDesc(LocalDateTime start, LocalDateTime end, Pageable pageable);
+
     List<ActivityLog> findTop50ByOrderByCreatedAtDesc();
 
     List<ActivityLog> findByUserEmailOrderByCreatedAtDesc(String userEmail);

@@ -63,6 +63,24 @@ public class Kullanici implements UserDetails {
     @Column(name = "password_changed_at")
     private LocalDateTime passwordChangedAt;
 
+    // MFA/2FA fields
+    @Column(name = "mfa_enabled")
+    private Boolean mfaEnabled = false;
+
+    @Column(name = "mfa_secret")
+    private String mfaSecret;
+
+    @Column(name = "mfa_type")
+    @Enumerated(EnumType.STRING)
+    private MfaType mfaType = MfaType.NONE;
+
+    @Column(name = "mfa_backup_codes", columnDefinition = "TEXT")
+    private String mfaBackupCodes; // CSV string, hashed
+
+    public enum MfaType {
+        NONE, TOTP, EMAIL, BACKUP
+    }
+
     public enum Role {
         ADMIN, USER, EDITOR
     }

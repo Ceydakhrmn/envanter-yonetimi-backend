@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -25,8 +26,14 @@ public class ActivityLogController {
     @GetMapping("/page")
     public ResponseEntity<Page<ActivityLog>> getAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(activityLogService.getAll(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        LocalDateTime start = (startDate != null && !startDate.isBlank())
+                ? LocalDateTime.parse(startDate + "T00:00:00") : null;
+        LocalDateTime end = (endDate != null && !endDate.isBlank())
+                ? LocalDateTime.parse(endDate + "T23:59:59") : null;
+        return ResponseEntity.ok(activityLogService.getAll(page, size, start, end));
     }
 
     @GetMapping("/user/{email}")

@@ -31,6 +31,20 @@ public class AssetService {
                 .orElseThrow(() -> new RuntimeException("Asset not found")));
     }
 
+    public Asset getEntityById(Long id) {
+        return assetRepository.findById(id).orElse(null);
+    }
+
+    public List<AssetResponseDTO> getByTag(String tag) {
+        return assetRepository.findByTag(tag).stream()
+                .map(AssetResponseDTO::from)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<String> getAllTags() {
+        return assetRepository.findAllTags();
+    }
+
     public AssetResponseDTO create(AssetRequestDTO dto) {
         Asset asset = toEntity(dto, new Asset());
         return AssetResponseDTO.from(assetRepository.save(asset));
@@ -44,6 +58,39 @@ public class AssetService {
 
     public void delete(Long id) {
         assetRepository.deleteById(id);
+    }
+
+    public void bulkDelete(List<Long> ids) {
+        assetRepository.deleteAllById(ids);
+    }
+
+    public List<Map<String, Object>> bulkImport(List<AssetRequestDTO> dtos) {
+        List<Map<String, Object>> results = new java.util.ArrayList<>();
+        int row = 1;
+        for (AssetRequestDTO dto : dtos) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("row", row++);
+            result.put("name", dto.getName());
+            try {
+                if (dto.getName() == null || dto.getName().isBlank()) {
+                    throw new RuntimeException("Name is required");
+                }
+                Asset asset = toEntity(dto, new Asset());
+                assetRepository.save(asset);
+                result.put("status", "success");
+            } catch (Exception e) {
+                result.put("status", "error");
+                result.put("message", e.getMessage());
+            }
+            results.add(result);
+        }
+        return results;
+    }
+
+    public void bulkUpdateStatus(List<Long> ids, Asset.Status status) {
+        List<Asset> assets = assetRepository.findAllById(ids);
+        assets.forEach(a -> a.setStatus(status));
+        assetRepository.saveAll(assets);
     }
 
     public List<AssetResponseDTO> getExpiringSoon() {
@@ -97,6 +144,14 @@ public class AssetService {
         asset.setWarrantyExpiryDate(dto.getWarrantyExpiryDate());
         asset.setStatus(dto.getStatus() != null ? dto.getStatus() : Asset.Status.ACTIVE);
         asset.setSeatCount(dto.getSeatCount());
+        asset.setUsefulLifeYears(dto.getUsefulLifeYears());
+        if (dto.getTags() != null) {
+            asset.getTags().clear();
+            dto.getTags().stream()
+                .filter(t -> t != null && !t.isBlank())
+                .map(String::trim)
+                .forEach(asset.getTags()::add);
+        }
         asset.setAssignedDepartment(dto.getAssignedDepartment());
         asset.setNotes(dto.getNotes());
 
