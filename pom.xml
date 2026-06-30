@@ -27,7 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>21</java.version>
+		<java.version>25</java.version>
 	</properties>
 	<dependencies>
 		<!-- Spring Boot Web -->
@@ -172,6 +172,16 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<!-- Required for Lombok annotation processing on Java 25 -->
+					<compilerArgs>
+						<arg>-proc:full</arg>
+					</compilerArgs>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
