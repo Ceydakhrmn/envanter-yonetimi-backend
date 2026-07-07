@@ -6,8 +6,10 @@ import com.example.demo.dto.DepreciationResponse;
 import com.example.demo.dto.DepreciationSummaryResponse;
 import com.example.demo.dto.PagedResponseDTO;
 import com.example.demo.entity.AssetAssignmentHistory;
+import com.example.demo.entity.AssetStatusHistory;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.repository.AssetAssignmentHistoryRepository;
+import com.example.demo.repository.AssetStatusHistoryRepository;
 import com.example.demo.service.AssetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +37,7 @@ public class AssetController {
     private final com.example.demo.service.NotificationService notificationService;
     private final com.example.demo.repository.KullaniciRepository kullaniciRepository;
     private final AssetAssignmentHistoryRepository assignmentHistoryRepository;
+    private final AssetStatusHistoryRepository statusHistoryRepository;
     private final com.example.demo.service.DepreciationService depreciationService;
 
     @GetMapping
@@ -105,9 +108,16 @@ public class AssetController {
         Long oldUserId = current.getAssignedUserId();
         String oldUserName = current.getAssignedUserName();
         String oldDept = current.getAssignedDepartment();
+        Asset.Status oldStatus = current.getStatus();
 
         AssetResponseDTO updated = assetService.update(id, dto);
         activityLogService.log("UPDATE", "ASSET", id, "Varlık güncellendi: " + updated.getName());
+
+        // Track status change
+        if (dto.getStatus() != null && !dto.getStatus().equals(oldStatus)) {
+            logStatusChange(id, updated.getName(), oldStatus != null ? oldStatus.name() : null,
+                    dto.getStatus().name(), auth.getName());
+        }
 
         Long newUserId = dto.getAssignedUserId();
         String newDept = dto.getAssignedDepartment();
@@ -263,15 +273,30 @@ public class AssetController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
     @PatchMapping("/bulk-status")
-    public ResponseEntity<Void> bulkUpdateStatus(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Void> bulkUpdateStatus(@RequestBody Map<String, Object> body, Authentication auth) {
         @SuppressWarnings("unchecked")
         List<Integer> rawIds = (List<Integer>) body.get("ids");
         String statusStr = (String) body.get("status");
         if (rawIds == null || rawIds.isEmpty() || statusStr == null) return ResponseEntity.badRequest().build();
         List<Long> ids = rawIds.stream().map(Integer::longValue).toList();
-        Asset.Status status = Asset.Status.valueOf(statusStr);
-        assetService.bulkUpdateStatus(ids, status);
+        Asset.Status newStatus = Asset.Status.valueOf(statusStr);
+
+        // Capture current statuses before update for history
+        List<AssetResponseDTO> before = ids.stream()
+                .map(id -> assetService.getById(id)).toList();
+
+        assetService.bulkUpdateStatus(ids, newStatus);
         activityLogService.log("UPDATE", "ASSET", null, ids.size() + " varlığın durumu güncellendi: " + statusStr);
+
+        // Log status change for each asset that actually changed
+        before.forEach(a -> {
+            if (!newStatus.equals(a.getStatus())) {
+                logStatusChange(a.getId(), a.getName(),
+                        a.getStatus() != null ? a.getStatus().name() : null,
+                        newStatus.name(), auth.getName());
+            }
+        });
+
         return ResponseEntity.noContent().build();
     }
 
@@ -335,6 +360,21 @@ public class AssetController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @GetMapping("/{id}/status-history")
+    public ResponseEntity<List<AssetStatusHistory>> getStatusHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(statusHistoryRepository.findByAssetIdOrderByCreatedAtDesc(id));
+    }
+
+    private void logStatusChange(Long assetId, String assetName, String fromStatus, String toStatus, String changedBy) {
+        AssetStatusHistory h = new AssetStatusHistory();
+        h.setAssetId(assetId);
+        h.setAssetName(assetName);
+        h.setFromStatus(fromStatus);
+        h.setToStatus(toStatus);
+        h.setChangedBy(changedBy);
+        statusHistoryRepository.save(h);
     }
 
     private void logAssignment(Long assetId, String assetName, String action,
