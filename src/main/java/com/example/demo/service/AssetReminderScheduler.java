@@ -20,6 +20,7 @@ public class AssetReminderScheduler {
     private final AssetRepository assetRepository;
     private final KullaniciRepository kullaniciRepository;
     private final NotificationService notificationService;
+    private final EmailService emailService;
 
     // Runs every day at 08:00 UTC
     @Scheduled(cron = "${app.reminders.cron:0 0 8 * * *}")
@@ -53,6 +54,7 @@ public class AssetReminderScheduler {
 
             for (String email : adminEmails) {
                 notificationService.create("warning", message, email);
+                emailService.sendNotificationEmail(email, "warning", message);
             }
             notificationService.broadcastWebSocketNotification("ASSET_RENEWAL", "Yenileme Hatırlatıcısı", message, "warning");
             log.info("Renewal reminder sent for {} assets ({}d window)", assets.size(), days);
@@ -72,6 +74,7 @@ public class AssetReminderScheduler {
 
         for (String email : adminEmails) {
             notificationService.create("warning", message, email);
+            emailService.sendNotificationEmail(email, "warning", message);
         }
         notificationService.broadcastWebSocketNotification("ASSET_WARRANTY", "Garanti Hatırlatıcısı", message, "warning");
         log.info("Warranty reminder sent for {} assets", assets.size());
