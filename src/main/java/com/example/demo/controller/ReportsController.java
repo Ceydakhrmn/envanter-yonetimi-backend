@@ -2,9 +2,11 @@ package com.example.demo.controller;
 
 import com.example.demo.entity.Asset;
 import com.example.demo.entity.ActivityLog;
+import com.example.demo.entity.AssetMaintenanceRecord;
 import com.example.demo.entity.AssetStatusHistory;
 import com.example.demo.entity.Kullanici;
 import com.example.demo.repository.ActivityLogRepository;
+import com.example.demo.repository.AssetMaintenanceRecordRepository;
 import com.example.demo.repository.AssetRepository;
 import com.example.demo.repository.AssetStatusHistoryRepository;
 import com.example.demo.repository.KullaniciRepository;
@@ -40,6 +42,7 @@ public class ReportsController {
     private final KullaniciRepository kullaniciRepository;
     private final ActivityLogRepository activityLogRepository;
     private final AssetStatusHistoryRepository statusHistoryRepository;
+    private final AssetMaintenanceRecordRepository maintenanceRecordRepository;
 
     @Operation(summary = "Department summary", description = "Returns per-department user and asset statistics")
     @PreAuthorize("hasRole('ADMIN') or hasRole('EDITOR')")
@@ -223,6 +226,80 @@ public class ReportsController {
         result.put("to", to);
         result.put("summary", summary);
         result.put("entries", entries);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @Operation(summary = "Maintenance summary", description = "Returns maintenance cost and count aggregated by month and asset")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EDITOR')")
+    @GetMapping("/maintenance-summary")
+    public ResponseEntity<Map<String, Object>> getMaintenanceSummary() {
+        LocalDate from = LocalDate.now().minusMonths(12).withDayOfMonth(1);
+        LocalDate to = LocalDate.now();
+
+        List<AssetMaintenanceRecord> records = maintenanceRecordRepository
+                .findByMaintenanceDateBetweenOrderByMaintenanceDateAsc(from, to);
+
+        // Monthly aggregation
+        Map<String, double[]> byMonth = new java.util.LinkedHashMap<>();
+        // Pre-fill last 12 months so chart has no gaps
+        for (int i = 11; i >= 0; i--) {
+            String key = LocalDate.now().minusMonths(i).getYear() + "-"
+                    + String.format("%02d", LocalDate.now().minusMonths(i).getMonthValue());
+            byMonth.put(key, new double[]{0, 0}); // [cost, count]
+        }
+        for (AssetMaintenanceRecord r : records) {
+            String key = r.getMaintenanceDate().getYear() + "-"
+                    + String.format("%02d", r.getMaintenanceDate().getMonthValue());
+            byMonth.computeIfAbsent(key, k -> new double[]{0, 0});
+            if (r.getCost() != null) byMonth.get(key)[0] += r.getCost().doubleValue();
+            byMonth.get(key)[1]++;
+        }
+        List<Map<String, Object>> monthly = new ArrayList<>();
+        byMonth.forEach((month, vals) -> {
+            Map<String, Object> row = new HashMap<>();
+            row.put("month", month);
+            row.put("totalCost", Math.round(vals[0] * 100.0) / 100.0);
+            row.put("count", (long) vals[1]);
+            monthly.add(row);
+        });
+
+        // Per-asset aggregation (top 10 by cost)
+        Map<Long, double[]> assetMap = new HashMap<>();
+        Map<Long, String> assetNames = new HashMap<>();
+        for (AssetMaintenanceRecord r : records) {
+            assetMap.computeIfAbsent(r.getAssetId(), k -> new double[]{0, 0});
+            if (r.getCost() != null) assetMap.get(r.getAssetId())[0] += r.getCost().doubleValue();
+            assetMap.get(r.getAssetId())[1]++;
+            assetNames.put(r.getAssetId(), r.getAssetName());
+        }
+        List<Map<String, Object>> byAsset = assetMap.entrySet().stream()
+                .sorted((a, b) -> Double.compare(b.getValue()[0], a.getValue()[0]))
+                .limit(10)
+                .map(e -> {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("assetId", e.getKey());
+                    row.put("assetName", assetNames.get(e.getKey()));
+                    row.put("totalCost", Math.round(e.getValue()[0] * 100.0) / 100.0);
+                    row.put("count", (long) e.getValue()[1]);
+                    return row;
+                }).toList();
+
+        // Totals
+        double totalCost = records.stream()
+                .filter(r -> r.getCost() != null)
+                .mapToDouble(r -> r.getCost().doubleValue()).sum();
+        long totalCount = records.size();
+
+        Map<String, Object> totals = new HashMap<>();
+        totals.put("totalCost", Math.round(totalCost * 100.0) / 100.0);
+        totals.put("totalCount", totalCount);
+        totals.put("avgCost", totalCount > 0 ? Math.round((totalCost / totalCount) * 100.0) / 100.0 : 0);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("monthly", monthly);
+        result.put("byAsset", byAsset);
+        result.put("totals", totals);
 
         return ResponseEntity.ok(result);
     }
