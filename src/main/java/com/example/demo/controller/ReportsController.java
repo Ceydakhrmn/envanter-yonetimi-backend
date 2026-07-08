@@ -1,9 +1,14 @@
 package com.example.demo.controller;
 
 import com.example.demo.entity.Asset;
+import com.example.demo.entity.ActivityLog;
+import com.example.demo.entity.AssetStatusHistory;
 import com.example.demo.entity.Kullanici;
+import com.example.demo.repository.ActivityLogRepository;
 import com.example.demo.repository.AssetRepository;
+import com.example.demo.repository.AssetStatusHistoryRepository;
 import com.example.demo.repository.KullaniciRepository;
+import org.springframework.web.bind.annotation.RequestParam;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +20,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +38,8 @@ public class ReportsController {
 
     private final AssetRepository assetRepository;
     private final KullaniciRepository kullaniciRepository;
+    private final ActivityLogRepository activityLogRepository;
+    private final AssetStatusHistoryRepository statusHistoryRepository;
 
     @Operation(summary = "Department summary", description = "Returns per-department user and asset statistics")
     @PreAuthorize("hasRole('ADMIN') or hasRole('EDITOR')")
@@ -143,6 +153,76 @@ public class ReportsController {
         result.put("inactive", all.size() - active);
         result.put("byDepartment", byDepartment);
         result.put("byRole", byRole);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @Operation(summary = "Audit report", description = "Returns asset activity and status changes for a date range")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/audit")
+    public ResponseEntity<Map<String, Object>> getAuditReport(
+            @RequestParam String from,
+            @RequestParam String to) {
+
+        LocalDateTime fromDt = LocalDate.parse(from).atStartOfDay();
+        LocalDateTime toDt = LocalDate.parse(to).atTime(LocalTime.MAX);
+
+        List<ActivityLog> activityLogs = activityLogRepository
+                .findByEntityTypeAndCreatedAtBetweenOrderByCreatedAtDesc("ASSET", fromDt, toDt);
+
+        List<AssetStatusHistory> statusChanges = statusHistoryRepository
+                .findByCreatedAtBetweenOrderByCreatedAtDesc(fromDt, toDt);
+
+        // Build unified timeline entries
+        List<Map<String, Object>> entries = new ArrayList<>();
+
+        for (ActivityLog log : activityLogs) {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("type", "ACTIVITY");
+            entry.put("action", log.getAction());
+            entry.put("assetId", log.getEntityId());
+            entry.put("details", log.getDetails());
+            entry.put("performedBy", log.getUserEmail());
+            entry.put("createdAt", log.getCreatedAt().toString());
+            entries.add(entry);
+        }
+
+        for (AssetStatusHistory sh : statusChanges) {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("type", "STATUS_CHANGE");
+            entry.put("action", "STATUS_CHANGE");
+            entry.put("assetId", sh.getAssetId());
+            entry.put("assetName", sh.getAssetName());
+            entry.put("fromStatus", sh.getFromStatus());
+            entry.put("toStatus", sh.getToStatus());
+            entry.put("performedBy", sh.getChangedBy());
+            entry.put("createdAt", sh.getCreatedAt().toString());
+            entries.add(entry);
+        }
+
+        entries.sort(Comparator.comparing(e -> (String) e.get("createdAt"), Comparator.reverseOrder()));
+
+        // Summary counts
+        long creates = activityLogs.stream().filter(l -> "CREATE".equals(l.getAction())).count();
+        long updates = activityLogs.stream().filter(l -> "UPDATE".equals(l.getAction())).count();
+        long deletes = activityLogs.stream().filter(l -> "DELETE".equals(l.getAction())).count();
+        long assignments = activityLogs.stream()
+                .filter(l -> l.getAction() != null && (l.getAction().contains("ASSIGN") || l.getAction().contains("TRANSFER")))
+                .count();
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalChanges", entries.size());
+        summary.put("creates", creates);
+        summary.put("updates", updates);
+        summary.put("deletes", deletes);
+        summary.put("assignments", assignments);
+        summary.put("statusChanges", statusChanges.size());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("from", from);
+        result.put("to", to);
+        result.put("summary", summary);
+        result.put("entries", entries);
 
         return ResponseEntity.ok(result);
     }

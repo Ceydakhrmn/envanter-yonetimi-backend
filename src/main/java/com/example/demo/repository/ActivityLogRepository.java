@@ -23,6 +23,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     List<ActivityLog> findByUserEmailOrderByCreatedAtDesc(String userEmail);
 
     List<ActivityLog> findByEntityTypeOrderByCreatedAtDesc(String entityType);
+    List<ActivityLog> findByEntityTypeAndCreatedAtBetweenOrderByCreatedAtDesc(String entityType, LocalDateTime from, LocalDateTime to);
 
     // Güvenlik istatistikleri
     long countByActionAndCreatedAtAfter(String action, LocalDateTime after);
