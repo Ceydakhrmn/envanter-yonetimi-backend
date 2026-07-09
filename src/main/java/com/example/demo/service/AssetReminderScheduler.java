@@ -1,7 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.entity.Asset;
+import com.example.demo.entity.AssetMaintenanceSchedule;
 import com.example.demo.entity.Kullanici;
+import com.example.demo.repository.AssetMaintenanceScheduleRepository;
 import com.example.demo.repository.AssetRepository;
 import com.example.demo.repository.KullaniciRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class AssetReminderScheduler {
     private final KullaniciRepository kullaniciRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final AssetMaintenanceScheduleRepository maintenanceScheduleRepository;
 
     // Runs every day at 08:00 UTC
     @Scheduled(cron = "${app.reminders.cron:0 0 8 * * *}")
@@ -37,6 +40,7 @@ public class AssetReminderScheduler {
 
         checkRenewalReminders(today, adminEmails);
         checkWarrantyReminders(today, adminEmails);
+        checkMaintenanceScheduleReminders(today, adminEmails);
     }
 
     private void checkRenewalReminders(LocalDate today, List<String> adminEmails) {
@@ -78,5 +82,41 @@ public class AssetReminderScheduler {
         }
         notificationService.broadcastWebSocketNotification("ASSET_WARRANTY", "Garanti Hatırlatıcısı", message, "warning");
         log.info("Warranty reminder sent for {} assets", assets.size());
+    }
+
+    private void checkMaintenanceScheduleReminders(LocalDate today, List<String> adminEmails) {
+        // Mark overdue (PENDING past due date → OVERDUE)
+        List<AssetMaintenanceSchedule> overdue = maintenanceScheduleRepository
+                .findByStatusAndScheduledDateBefore("PENDING", today);
+        overdue.forEach(s -> s.setStatus("OVERDUE"));
+        if (!overdue.isEmpty()) {
+            maintenanceScheduleRepository.saveAll(overdue);
+            String names = overdue.stream().map(AssetMaintenanceSchedule::getAssetName).limit(5)
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+            String suffix = overdue.size() > 5 ? " ve " + (overdue.size() - 5) + " daha" : "";
+            String msg = "Bakım planı gecikti: " + names + suffix;
+            for (String email : adminEmails) {
+                notificationService.create("error", msg, email);
+                emailService.sendNotificationEmail(email, "error", msg);
+            }
+            log.info("Marked {} maintenance schedules as overdue", overdue.size());
+        }
+
+        // Remind for schedules due in 1–7 days
+        List<AssetMaintenanceSchedule> upcoming = maintenanceScheduleRepository
+                .findByStatusAndScheduledDateBetween("PENDING", today.plusDays(1), today.plusDays(7));
+        if (upcoming.isEmpty()) return;
+
+        String names = upcoming.stream().map(AssetMaintenanceSchedule::getAssetName).limit(5)
+                .reduce((a, b) -> a + ", " + b).orElse("");
+        String suffix = upcoming.size() > 5 ? " ve " + (upcoming.size() - 5) + " daha" : "";
+        String message = "Yaklaşan bakım planı (7 gün içinde): " + names + suffix;
+
+        for (String email : adminEmails) {
+            notificationService.create("warning", message, email);
+            emailService.sendNotificationEmail(email, "warning", message);
+        }
+        notificationService.broadcastWebSocketNotification("MAINTENANCE_SCHEDULE", "Bakım Hatırlatıcısı", message, "warning");
+        log.info("Maintenance schedule reminder sent for {} items", upcoming.size());
     }
 }
